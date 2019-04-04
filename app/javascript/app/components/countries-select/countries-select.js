@@ -80,19 +80,19 @@ class CountrySelectContainer extends PureComponent {
       {
         coordinates: [28.034, -26.1952],
         link: 'http://southafricaclimateexplorer.org',
-        name: 'South Africa platform',
+        name: 'South Africa Explorer',
         pin
       },
-      {
-        coordinates: [79.2167, 20.6448],
-        link: 'http://india-platform-staging.vizzuality.com',
-        name: 'India platform',
-        pin
-      },
+      //      {
+      //        coordinates: [79.2167, 20.6448],
+      //        link: 'http://india-platform-staging.vizzuality.com',
+      //        name: 'India platform',
+      //        pin
+      //      },
       {
         coordinates: [112.0149, -3.54],
-        link: 'http://indonesia-platform-staging.vizzuality.com',
-        name: 'Indonesia platform',
+        link: 'https://indonesia.climatewatchdata.org',
+        name: 'Indonesia Platform',
         pin
       }
     ];
