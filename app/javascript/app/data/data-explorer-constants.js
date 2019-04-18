@@ -139,13 +139,7 @@ export const DATA_EXPLORER_DEPENDENCIES = {
     scenarios: ['models', 'locations'],
     categories: ['scenarios', 'models', 'locations'],
     subcategories: ['categories', 'scenarios', 'models', 'locations'],
-    indicators: [
-      'subcategories',
-      'categories',
-      'scenarios',
-      'models',
-      'locations'
-    ]
+    indicators: ['subcategories', 'categories', 'scenarios', 'models', 'locations']
   }
 };
 
@@ -170,7 +164,14 @@ export const DATA_EXPLORER_TO_MODULES_PARAMS = {
       idLabel: 'number'
     }
   },
-  'ndc-content': {},
+  'ndc-content': {
+    sectors: {
+      key: 'sectors'
+    },
+    categories: {
+      key: 'category'
+    }
+  },
   'emission-pathways': {
     locations: {
       key: 'currentLocation',
@@ -247,9 +248,16 @@ export const FILTERED_FIELDS = {
   'historical-emissions': {
     sectors: [
       {
-        parent: 'source',
-        parentId: 'dataSourceId',
-        id: 'data_source_id'
+        parent: 'data-sources',
+        parentId: 'sector_ids',
+        id: 'id'
+      }
+    ],
+    gases: [
+      {
+        parent: 'data-sources',
+        parentId: 'gas_ids',
+        id: 'id'
       }
     ]
   },
