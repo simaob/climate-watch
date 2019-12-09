@@ -7,19 +7,19 @@ import qs from 'query-string';
 import { getLocationParamUpdated } from 'utils/navigation';
 import { setColumnWidth } from 'utils/table';
 
-import Component from './lts-explore-table-component';
+import Component from './ndcs-explore-table-component';
 
 import {
   getISOCountries,
   tableRemoveIsoFromData,
   getDefaultColumns
-} from './lts-explore-table-selectors';
+} from './ndcs-explore-table-selectors';
 
 const mapStateToProps = (state, { location }) => {
-  const { data, loading } = state.LTS;
+  const { data, loading } = state.ndcs;
   const { countries } = state;
   const search = qs.parse(location.search);
-  const LTSWithSelection = {
+  const ndcsNDCSWithSelection = {
     ...data,
     countries: countries.data,
     query: search.search,
@@ -27,26 +27,27 @@ const mapStateToProps = (state, { location }) => {
   };
   return {
     loading,
-    query: LTSWithSelection.query,
-    isoCountries: getISOCountries(LTSWithSelection),
-    tableData: tableRemoveIsoFromData(LTSWithSelection),
-    columns: getDefaultColumns(LTSWithSelection)
+    query: ndcsNDCSWithSelection.query,
+    isoCountries: getISOCountries(ndcsNDCSWithSelection),
+    tableData: tableRemoveIsoFromData(ndcsNDCSWithSelection),
+    columns: getDefaultColumns(ndcsNDCSWithSelection)
   };
 };
 
-class LTSExploreTableContainer extends PureComponent {
+class NDCSExploreTableContainer extends PureComponent {
   constructor(props) {
     super(props);
     this.state = {};
   }
 
   setColumnWidth = column => {
+    const { columns } = this.props;
     const TABLE_WIDTH = 1170;
     const MIN_COLUMN_WIDTH = 180;
     const narrowColumns = [0];
     return setColumnWidth(
       column,
-      this.props.columns,
+      columns,
       TABLE_WIDTH,
       MIN_COLUMN_WIDTH,
       narrowColumns
@@ -77,7 +78,7 @@ class LTSExploreTableContainer extends PureComponent {
   }
 }
 
-LTSExploreTableContainer.propTypes = {
+NDCSExploreTableContainer.propTypes = {
   history: PropTypes.object.isRequired,
   location: PropTypes.object.isRequired,
   tableData: PropTypes.array,
@@ -86,5 +87,5 @@ LTSExploreTableContainer.propTypes = {
 };
 
 export default withRouter(
-  connect(mapStateToProps, null)(LTSExploreTableContainer)
+  connect(mapStateToProps, null)(NDCSExploreTableContainer)
 );

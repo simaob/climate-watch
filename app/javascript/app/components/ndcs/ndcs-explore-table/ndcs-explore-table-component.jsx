@@ -5,7 +5,9 @@ import { Table } from 'cw-components';
 import NoContent from 'components/no-content';
 import Loading from 'components/loading';
 import darkSearch from 'styles/themes/search/search-dark.scss';
-import styles from './ndcs-enhancements-table-styles.scss';
+import exploreTableTheme from 'styles/themes/table/explore-table-theme.scss';
+
+import styles from './ndcs-explore-table-styles.scss';
 
 const renderSearch = (searchHandler, query) => (
   <Search
@@ -18,13 +20,14 @@ const renderSearch = (searchHandler, query) => (
   />
 );
 
-const NDCSEnhancementsTable = ({
+const NDCSExploreTable = ({
   loading,
   tableData,
   query,
   handleSearchChange,
   noContentMsg,
-  columns
+  columns,
+  setColumnWidth
 }) => (
   <div>
     <div className={styles.wrapper}>
@@ -40,9 +43,9 @@ const NDCSEnhancementsTable = ({
             data={tableData}
             horizontalScroll
             parseHtml
-            dynamicRowsHeight
-            setColumnWidth={() => 180}
+            setColumnWidth={setColumnWidth}
             defaultColumns={columns}
+            theme={exploreTableTheme}
           />
         </div>
       )}
@@ -53,13 +56,14 @@ const NDCSEnhancementsTable = ({
   </div>
 );
 
-NDCSEnhancementsTable.propTypes = {
+NDCSExploreTable.propTypes = {
   loading: PropTypes.bool,
   noContentMsg: PropTypes.string,
   query: PropTypes.string,
   tableData: PropTypes.array,
-  columns: PropTypes.array,
-  handleSearchChange: PropTypes.func.isRequired
+  handleSearchChange: PropTypes.func.isRequired,
+  setColumnWidth: PropTypes.func.isRequired,
+  columns: PropTypes.array
 };
 
-export default NDCSEnhancementsTable;
+export default NDCSExploreTable;

@@ -81,8 +81,8 @@ export const tableGetFilteredData = createSelector(
 const headerChanges = {
   'Communication of Long-term Strategy':
     'Latest submission (Current selection)',
-  Document: 'LTS submission Link',
-  'Submission Date': 'Date of LTS submission',
+  Document: 'NDCs submission Link',
+  'Submission Date': 'Date of NDCs submission',
   'Share of GHG Emissions': 'Share of global GHG emissions'
 };
 
@@ -90,14 +90,9 @@ export const getDefaultColumns = createSelector(
   [getIndicatorsParsed],
   indicators => {
     if (!indicators || isEmpty(indicators)) return [];
-    const COLUMN_IDS = [
-      'country',
-      'lts_target',
-      'lts_document',
-      'lts_date',
-      'ndce_ghg'
-    ];
-    const columns = COLUMN_IDS.map(id => {
+    const columnIds = ['country', 'submission', 'submission_date', 'ndce_ghg'];
+
+    const columns = columnIds.map(id => {
       const match = indicators.find(indicator => indicator.value === id);
       return match ? match.label : id;
     });
