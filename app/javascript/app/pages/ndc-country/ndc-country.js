@@ -83,7 +83,7 @@ class NDCCountryContainer extends PureComponent {
 NDCCountryContainer.propTypes = {
   history: Proptypes.object.isRequired,
   location: Proptypes.object.isRequired,
-  country: Proptypes.object.isRequired
+  country: Proptypes.object
 };
 
 export default withRouter(connect(mapStateToProps, null)(NDCCountryContainer));
