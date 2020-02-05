@@ -190,7 +190,7 @@ class ModalDownload extends PureComponent {
       <Modal
         isOpen={isOpen}
         onRequestClose={onRequestClose}
-        header={<ModalHeader title="Purpose of Download" />}
+        header={<ModalHeader title="Data Download" />}
       >
         {this.renderForm()}
       </Modal>

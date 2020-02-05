@@ -22,7 +22,13 @@
 }
 
 .text {
-  color: $dark-gray;
+  color: $white;
+}
+
+.link {
+  &:hover {
+    text-decoration: underline;
+  }
 }
 
 .icon {

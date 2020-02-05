@@ -7,12 +7,13 @@ import ShareButton from 'components/button/share-button';
 import styles from './ndcs-overview-section-styles.scss';
 import QuestionCard from './question-card';
 
-const NdcsOverviewSection = ({ data, section, location }) => {
+const NdcsOverviewSection = ({ data, section, location, handleInfoClick }) => {
   const { title, description, hint, questions, color } = data;
+  const isEmbed = isEmbededComponent(location);
   return (
     <div
       className={cx({
-        [styles.commitmentContainer]: !isEmbededComponent(location)
+        [styles.commitmentContainer]: !isEmbed
       })}
     >
       <div className={layout.content}>
@@ -20,8 +21,16 @@ const NdcsOverviewSection = ({ data, section, location }) => {
           <div className={styles.commitmentWrapper}>
             <div className={styles.commitmentText}>
               <div>
-                <h1 className={styles.title}>{title}</h1>
-                <p className={styles.description}>{description}</p>
+                <h1 className={styles.title}>{`${
+                  isEmbed ? '' : `${section} `
+                }${title}`}</h1>
+                <p
+                  className={cx(styles.description, {
+                    [styles.firstDescription]: parseInt(section, 10) === 1
+                  })}
+                >
+                  {description}
+                </p>
               </div>
               <p className={styles.hint}>{hint}</p>
             </div>
@@ -37,11 +46,13 @@ const NdcsOverviewSection = ({ data, section, location }) => {
               <QuestionCard
                 key={`${question.slug}${question.questionText}`}
                 slug={question.slug}
+                metadataSlug={question.metadataSlug}
                 link={question.link}
                 color={color}
-                linkSlug={question.linkSlug}
                 questionText={question.questionText}
                 answerLabel={question.answerLabel}
+                handleInfoClick={handleInfoClick}
+                hasExternalLink={question.hasExternalLink}
               />
             ))}
           </div>
@@ -54,6 +65,7 @@ const NdcsOverviewSection = ({ data, section, location }) => {
 NdcsOverviewSection.propTypes = {
   section: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
   location: PropTypes.object,
+  handleInfoClick: PropTypes.func.isRequired,
   data: PropTypes.shape({
     title: PropTypes.string,
     description: PropTypes.string,

@@ -4,14 +4,14 @@
   @include row('shrink', $wrap: false);
 }
 
-.compareButton {
+.compareButtonContainer {
   @include row();
 
-  @media #{$tablet-portrait} {
-    @include row(6);
-
-    margin-bottom: 110px;
+  .compareButton {
+    width: 300px;
   }
+
+  margin-bottom: 110px;
 }
 
 .title {
@@ -51,4 +51,16 @@
       @include row((6, 3, 3));
     }
   }
+}
+
+.countryDropdown {
+  margin-bottom: 10px;
+
+  @media #{$tablet-landscape} {
+    margin-bottom: 0;
+  }
+}
+
+.mobileActions {
+  @include row();
 }

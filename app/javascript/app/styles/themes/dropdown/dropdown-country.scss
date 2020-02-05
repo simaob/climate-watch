@@ -1,6 +1,6 @@
 @import '~styles/settings.scss';
 
-$min-width: 250px;
+$min-width: 110px;
 
 .dropdown :global {
   .react-selectize-control {
@@ -22,12 +22,17 @@ $min-width: 250px;
     }
 
     .simple-value {
-      font-size: $font-size-xl-large;
       color: $white;
       width: auto !important;
+      font-size: $font-size-x-large;
+
+      @media #{$tablet-portrait} {
+        font-size: $font-size-xl-large;
+      }
 
       > span {
-        overflow: visible !important;
+        max-width: 81vw;
+        min-height: 60px;
         width: auto !important;
       }
     }
@@ -51,8 +56,16 @@ $min-width: 250px;
       visibility: visible;
     }
 
+    .value-wrapper {
+      min-width: $min-width + 45px;
+    }
+
     .simple-select {
-      max-width: $min-width + 45px;
+      min-width: $min-width + 45px;
+
+      .resizable-input {
+        min-width: $min-width + 100px;
+      }
     }
 
     .react-selectize-toggle-button-container {

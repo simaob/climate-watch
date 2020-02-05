@@ -4,16 +4,29 @@
   position: relative;
   border: solid 2.5px $gray3;
   border-radius: 6px;
-  padding: 20px 60px 25px;
+  padding: 30px 20px 20px;
   clear: both;
   display: block;
-  color: $theme-color-intense;
-  text-decoration: none;
   margin-bottom: 20px;
+
+  @media #{$tablet-portrait} {
+    padding: 20px 60px 25px;
+  }
 
   &:hover {
     background-color: $gray3;
   }
+}
+
+.questionCardLink {
+  color: $theme-color;
+  text-decoration: none;
+}
+
+.externalLinkIcon {
+  margin-left: 10px;
+  height: 12px;
+  width: 12px;
 }
 
 .infoButton {
@@ -26,7 +39,7 @@
 
 .questionText {
   font-weight: $font-weight-bold;
-  color: $theme-color-intense;
+  color: $theme-color;
   margin-bottom: 15px;
 }
 
@@ -36,7 +49,7 @@
 
 .answerNumber {
   font-size: $font-size-large;
-  color: $theme-color-intense;
+  color: $theme-color;
 }
 
 .percentage {

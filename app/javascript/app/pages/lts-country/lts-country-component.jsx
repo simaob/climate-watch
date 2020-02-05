@@ -12,11 +12,10 @@ import AnchorNav from 'components/anchor-nav';
 import { Dropdown as CWDropdown } from 'cw-components';
 import { LTS_COUNTRY } from 'data/SEO';
 import { MetaDescription, SocialMetadata } from 'components/seo';
-import { TabletLandscape } from 'components/responsive';
+import { TabletPortrait, MobileOnly } from 'components/responsive';
 import NdcsDocumentsMetaProvider from 'providers/ndcs-documents-meta-provider';
 
 import anchorNavRegularTheme from 'styles/themes/anchor-nav/anchor-nav-regular.scss';
-import lightSearch from 'styles/themes/search/search-light.scss';
 import countryDropdownTheme from 'styles/themes/dropdown/dropdown-country.scss';
 import styles from './lts-country-styles.scss';
 
@@ -40,13 +39,14 @@ class LTSCountry extends PureComponent {
   renderCompareButton() {
     const { match } = this.props;
     return (
-      <div className={styles.compareButton}>
+      <div className={styles.compareButtonContainer}>
         <Button
           variant="primary"
           link={`/lts/compare/mitigation?locations=${match.params.iso}`}
+          className={styles.compareButton}
           disabled
         >
-          {'Compare countries and submissions'}
+          Compare countries and submissions
         </Button>
       </div>
     );
@@ -105,25 +105,34 @@ class LTSCountry extends PureComponent {
                   [styles.withSearch]: hasSearch
                 })}
               >
-                <BackButton
-                  directLinksRegexs={[
-                    { regex: /countries\/compare/, label: 'country compare' },
-                    { regex: /countries/, label: 'country' }
-                  ]}
-                  clearRegexs={[/\/lts\/country/, /\/lts\/compare/]}
-                />
-                {this.renderFullTextDropdown()}
-                {hasSearch && (
-                  <Search
-                    theme={lightSearch}
-                    placeholder="Search"
-                    value={search}
-                    onChange={onSearchChange}
-                  />
-                )}
+                <BackButton backLabel="Explore LTS" pathname="/lts-explore" />
+                <TabletPortrait>
+                  {this.renderFullTextDropdown()}
+                  {hasSearch && (
+                    <Search
+                      placeholder="Search"
+                      value={search}
+                      onChange={onSearchChange}
+                      variant="transparent"
+                    />
+                  )}
+                </TabletPortrait>
               </div>
               <div className={styles.title}>{renderIntroDropdown()}</div>
-              <TabletLandscape>{this.renderCompareButton()}</TabletLandscape>
+              <MobileOnly>
+                <div className={styles.mobileActions}>
+                  {this.renderFullTextDropdown()}
+                  {hasSearch && (
+                    <Search
+                      placeholder="Search"
+                      value={search}
+                      onChange={onSearchChange}
+                      variant="transparent"
+                    />
+                  )}
+                </div>
+              </MobileOnly>
+              <TabletPortrait>{this.renderCompareButton()}</TabletPortrait>
             </div>
             <Sticky activeClass="sticky -ndcs" top="#navBarMobile">
               <AnchorNav
@@ -131,7 +140,6 @@ class LTSCountry extends PureComponent {
                 links={anchorLinks}
                 className={styles.anchorNav}
                 theme={anchorNavRegularTheme}
-                gradientColor={route.headerColor}
               />
             </Sticky>
           </Header>
