@@ -14,12 +14,13 @@ import CustomInnerHoverLabel from 'components/ndcs/shared/donut-custom-label';
 import LegendItem from 'components/ndcs/shared/legend-item';
 import ShareButton from 'components/button/share-button';
 import ExploreMapTooltip from 'components/ndcs/shared/explore-map-tooltip';
+import ModalShare from 'components/modal-share';
 
 import layout from 'styles/layout.scss';
 import newMapTheme from 'styles/themes/map/map-new-zoom-controls.scss';
 import styles from './lts-explore-map-styles.scss';
 
-const renderButtonGroup = clickHandler => (
+const renderButtonGroup = (clickHandler, downloadLink) => (
   <div className={styles.buttonGroupContainer}>
     <ButtonGroup
       className={styles.buttonGroup}
@@ -31,15 +32,15 @@ const renderButtonGroup = clickHandler => (
         {
           type: 'download',
           section: 'lts-explore',
-          // link: downloadLink,
-          disabled: true
+          link: downloadLink
         },
         {
           type: 'addToUser'
         }
       ]}
     />
-    <ShareButton analyticsName="LTS Explore" sharePath="/embed/lts-explore" />
+    <ShareButton />
+    <ModalShare analyticsName="LTS Explore" />
   </div>
 );
 
