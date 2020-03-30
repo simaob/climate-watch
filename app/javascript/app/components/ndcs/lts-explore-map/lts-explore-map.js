@@ -22,8 +22,7 @@ import {
   getCategories,
   getCategoryIndicators,
   getSelectedCategory,
-  getTooltipCountryValues,
-  getIsEUUSubmitted
+  getTooltipCountryValues
 } from './lts-explore-map-selectors';
 
 const actions = { ...fetchActions, ...modalActions };
@@ -50,7 +49,6 @@ const mapStateToProps = (state, { location }) => {
     query: LTSWithSelection.query,
     paths: getPathsWithStyles(LTSWithSelection),
     isoCountries: getISOCountries(LTSWithSelection),
-    isEUUSubmitted: getIsEUUSubmitted(LTSWithSelection),
     selectedIndicator: getMapIndicator(LTSWithSelection),
     emissionsCardData: getEmissionsCardData(LTSWithSelection),
     tooltipCountryValues: getTooltipCountryValues(LTSWithSelection),
@@ -103,10 +101,6 @@ class LTSExploreMapContainer extends PureComponent {
         tooltipCountryValues && tooltipCountryValues[iso]
           ? tooltipCountryValues[iso].value
           : 'No Document Submitted',
-      emissionsValue:
-        tooltipCountryValues &&
-        tooltipCountryValues[iso] &&
-        tooltipCountryValues[iso].emissionsValue,
       countryName: geography.properties && geography.properties.name
     };
 
