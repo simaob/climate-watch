@@ -1,22 +1,24 @@
 import { createElement, PureComponent } from 'react';
 import { connect } from 'react-redux';
-import Proptypes from 'prop-types';
+import PropTypes from 'prop-types';
 import { withRouter } from 'react-router-dom';
 import qs from 'query-string';
 import { getLocationParamUpdated } from 'utils/navigation';
+import actions from 'pages/lts-explore/lts-explore-actions';
 
 import LTSCountryComponent from './lts-country-component';
 import {
   getCountry,
   getAnchorLinks,
-  getDocumentsOptions,
-  addUrlToCountries
+  getDocumentLink,
+  addUrlAndHasDataToCountries
 } from './lts-country-selectors';
 
 const mapStateToProps = (state, { match, location, route }) => {
   const { iso } = match.params;
   const search = qs.parse(location.search);
   const stateData = {
+    ...state,
     iso,
     location,
     route,
@@ -35,13 +37,17 @@ const mapStateToProps = (state, { match, location, route }) => {
     country: getCountry(stateData),
     search: search.search,
     anchorLinks: getAnchorLinks(stateData),
-    countriesOptions: addUrlToCountries(stateData),
-    documentsOptions: getDocumentsOptions(stateData),
+    countriesOptions: addUrlAndHasDataToCountries(stateData),
+    documentLink: getDocumentLink(stateData),
     notSummary
   };
 };
 
 class LTSCountryContainer extends PureComponent {
+  componentWillMount() {
+    this.props.fetchLTS();
+  }
+
   onSearchChange = query => {
     this.updateUrlParam({ name: 'search', value: query });
   };
@@ -71,9 +77,12 @@ class LTSCountryContainer extends PureComponent {
 }
 
 LTSCountryContainer.propTypes = {
-  history: Proptypes.object.isRequired,
-  location: Proptypes.object.isRequired,
-  country: Proptypes.object
+  fetchLTS: PropTypes.func.isRequired,
+  history: PropTypes.object.isRequired,
+  location: PropTypes.object.isRequired,
+  country: PropTypes.object
 };
 
-export default withRouter(connect(mapStateToProps, null)(LTSCountryContainer));
+export default withRouter(
+  connect(mapStateToProps, actions)(LTSCountryContainer)
+);

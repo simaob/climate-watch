@@ -42,11 +42,13 @@ const NDCSExploreTable = ({
             <Table
               data={tableData}
               horizontalScroll
+              dynamicRowsHeight
               parseHtml
               setColumnWidth={setColumnWidth}
               defaultColumns={columns}
               theme={exploreTableTheme}
               titleLinks={titleLinks}
+              tableHeight={650}
             />
           </div>
         )}

@@ -6,14 +6,12 @@ import {
 } from 'utils/map';
 import uniqBy from 'lodash/uniqBy';
 import sortBy from 'lodash/sortBy';
+import camelCase from 'lodash/camelCase';
 import { generateLinkToDataExplorer } from 'utils/data-explorer';
 import worldPaths from 'app/data/world-50m-paths';
 import { COUNTRY_STYLES } from 'components/ndcs/shared/constants';
-import {
-  sortByIndexAndNotInfo,
-  getIndicatorEmissionsData,
-  getLabels
-} from 'components/ndcs/shared/utils';
+import { sortByIndexAndNotInfo, getLabels } from 'components/ndcs/shared/utils';
+import { europeSlug, europeanCountries } from 'app/data/european-countries';
 
 const NO_DOCUMENT_SUBMITTED = 'No Document Submitted';
 
@@ -33,11 +31,9 @@ export const getCategories = createSelector(getCategoriesData, categories =>
     })))
 );
 
-export const getMaximumCountries = createSelector(getCountries, countries => {
-  const partiesISO = ['EUU'];
-  const nonParties = countries.filter(c => !partiesISO.includes(c.iso_code3));
-  return nonParties.length;
-});
+export const getMaximumCountries = createSelector([getCountries], countries =>
+  (countries ? countries.length : null)
+);
 
 export const getISOCountries = createSelector([getCountries], countries =>
   countries.map(country => country.iso_code3)
@@ -227,21 +223,66 @@ export const getTooltipCountryValues = createSelector(
       updatedSelectedIndicator = indicators.find(i => i.slug === 'lts_target');
     }
 
-    const emissionsIndicator = indicators.find(i => i.slug === 'lts_ghg');
     const tooltipCountryValues = {};
     Object.keys(updatedSelectedIndicator.locations).forEach(iso => {
       tooltipCountryValues[iso] = {
         value:
           updatedSelectedIndicator.locations[iso] &&
-          updatedSelectedIndicator.locations[iso].value,
-        emissionsValue:
-          emissionsIndicator.locations[iso] &&
-          emissionsIndicator.locations[iso].value
+          updatedSelectedIndicator.locations[iso].value
       };
     });
     return tooltipCountryValues;
   }
 );
+
+export const getIndicatorEmissionsData = (
+  emissionsIndicator,
+  selectedIndicator,
+  legend
+) => {
+  if (!emissionsIndicator) return null;
+  const emissionPercentages = emissionsIndicator.locations;
+  let summedPercentage = 0;
+  const data = legend.map(legendItem => {
+    let legendItemValue = 0;
+    const locationEntries = Object.entries(selectedIndicator.locations);
+    const europeanLocationIsos = Object.keys(
+      selectedIndicator.locations
+    ).filter(iso => europeanCountries.includes(iso));
+    locationEntries.forEach(entry => {
+      const [locationIso, { label_id: labelId }] = entry;
+      if (
+        labelId === parseInt(legendItem.id, 10) &&
+        emissionPercentages[locationIso]
+      ) {
+        if (locationIso === europeSlug) {
+          const EUTotal = parseFloat(emissionPercentages[europeSlug].value);
+          const europeanLocationsValue = europeanLocationIsos.reduce(
+            (acc, iso) => acc + parseFloat(emissionPercentages[iso].value),
+            0
+          );
+          legendItemValue += EUTotal - europeanLocationsValue; // To avoid double counting
+        } else {
+          legendItemValue += parseFloat(emissionPercentages[locationIso].value);
+        }
+      }
+    });
+    summedPercentage += legendItemValue;
+
+    return {
+      name: camelCase(legendItem.name),
+      value: legendItemValue
+    };
+  });
+
+  if (summedPercentage < 100) {
+    data.push({
+      name: NO_DOCUMENT_SUBMITTED,
+      value: 100 - summedPercentage
+    });
+  }
+  return data;
+};
 
 export const getEmissionsCardData = createSelector(
   [getLegend, getMapIndicator, getIndicatorsData],
@@ -253,8 +294,7 @@ export const getEmissionsCardData = createSelector(
     let data = getIndicatorEmissionsData(
       emissionsIndicator,
       selectedIndicator,
-      legend,
-      NO_DOCUMENT_SUBMITTED
+      legend
     );
 
     // Remove extra No document submitted. TODO: Fix in data
@@ -278,17 +318,23 @@ export const getEmissionsCardData = createSelector(
 );
 
 export const getSummaryCardData = createSelector(
-  [getMaximumCountries, getIndicatorsData],
-  (maximumCountries, indicators) => {
-    if (!indicators || !maximumCountries) return null;
+  [getIndicatorsData],
+  indicators => {
+    if (!indicators) return null;
     const LTSIndicator = indicators.find(i => i.slug === 'lts_document');
     if (!LTSIndicator) return null;
-    const countriesNumber = Object.values(LTSIndicator.locations).filter(
+    let countriesNumber = Object.values(LTSIndicator.locations).filter(
       l => l.value
     ).length;
+    const partiesNumber = countriesNumber;
+    const europeanCountriesWithSubmission = europeanCountries.filter(
+      iso => LTSIndicator.locations[iso]
+    );
+    countriesNumber +=
+      europeanCountries.length - europeanCountriesWithSubmission.length; // To avoid double counting
     return {
-      value: countriesNumber,
-      description: `out of ${maximumCountries} countries have submitted long-term strategies`
+      value: partiesNumber,
+      description: ` parties have submitted a long-term strategy document, representing ${countriesNumber} countries`
     };
   }
 );

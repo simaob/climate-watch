@@ -18,14 +18,14 @@ export default [
     label: 'NDC Content',
     activeId
   },
-  (FEATURE_ALL_COMMITMENTS_MENU_ITEMS || !FEATURE_LTS_EXPLORE) && {
-    path: '/2020-ndc-tracker',
-    label: '2020 NDC Tracker',
-    activeId
-  },
   (FEATURE_ALL_COMMITMENTS_MENU_ITEMS || FEATURE_LTS_EXPLORE) && {
     path: '/ndcs-explore',
     label: 'Explore NDCS',
+    activeId
+  },
+  !FEATURE_LTS_EXPLORE && {
+    path: '/2020-ndc-tracker',
+    label: '2020 NDC Tracker',
     activeId
   },
   (FEATURE_ALL_COMMITMENTS_MENU_ITEMS || FEATURE_LTS_EXPLORE) && {

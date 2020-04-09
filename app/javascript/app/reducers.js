@@ -6,6 +6,7 @@ import { handleActions } from 'app/utils/redux';
 import * as loginProvider from 'providers/login-provider';
 import * as countriesProvider from 'providers/countries-provider';
 import * as regionsProvider from 'providers/regions-provider';
+import * as documentsProvider from 'providers/documents-provider';
 import * as espLocationsProvider from 'providers/esp-locations-provider';
 import * as espTimeSeriesProvider from 'providers/esp-time-series-provider';
 import * as adaptationsProvider from 'providers/adaptations-provider';
@@ -42,6 +43,7 @@ const providersReducers = {
   login: handleActions(loginProvider),
   countries: handleActions(countriesProvider),
   regions: handleActions(regionsProvider),
+  documents: handleActions(documentsProvider),
   adaptations: handleActions(adaptationsProvider),
   emissions: handleActions(emissionsProvider),
   ndcsSdgsMeta: handleActions(ndcsSdgsMetaProvider),
@@ -99,6 +101,7 @@ const pagesReducers = {
 // Components
 import * as mapComponent from 'components/map';
 import * as autocompleteSearchComponent from 'components/autocomplete-search';
+import * as ndcsAutocompleteSearchComponent from 'components/ndcs/ndcs-autocomplete-search';
 import * as countrySelectComponent from 'components/countries-select';
 import * as modalDownloadComponent from 'components/modal-download';
 import * as modalMetadataComponent from 'components/modal-metadata';
@@ -119,6 +122,7 @@ import * as AnchorNavComponent from 'components/anchor-nav';
 const componentsReducers = {
   map: handleActions(mapComponent),
   autocompleteSearch: handleActions(autocompleteSearchComponent),
+  documents: handleActions(ndcsAutocompleteSearchComponent),
   countrySelect: handleActions(countrySelectComponent),
   modalDownload: handleActions(modalDownloadComponent),
   modalMetadata: handleActions(modalMetadataComponent),

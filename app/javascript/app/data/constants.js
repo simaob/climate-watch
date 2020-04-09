@@ -201,25 +201,6 @@ export const CLIMATE_VULNERABILITY_DEFINITIONS = {
 
 export const DISCLAIMER_SHOWN = 'disclaimerShown';
 
-export const NDC_DOCUMENT_OPTIONS = [
-  {
-    label: 'All documents',
-    value: 'all'
-  },
-  {
-    label: 'NDC',
-    value: 'ndc'
-  },
-  {
-    label: 'INDC',
-    value: 'indc'
-  },
-  {
-    label: 'Second NDC',
-    value: 'ndc2'
-  }
-];
-
 export const CONTAINED_PATHNAME = 'contained';
 
 export const LENSES_SELECTOR_INFO = {
@@ -259,7 +240,7 @@ export const TOP_EMITTERS_OPTION = {
 
 export const GAS_AGGREGATES = {
   'All GHG': ['CH4', 'CO2', 'F-Gas', 'N2O'],
-  KYOTOGHG: ['CH4', 'CO2', 'HFCS', 'N2O'],
+  KYOTOGHG: ['CH4', 'CO2', 'HFCS', 'N2O', 'F-Gas'],
   'Aggregate GHGs': ['CH4', 'CO2', 'HFCs', 'N2O', 'PFCs', 'SF6'],
   'Aggregate F-gases': ['HFCs', 'PFCs', 'SF6']
 };

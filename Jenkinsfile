@@ -39,7 +39,7 @@ node {
     cw_files_prefix = 'climatewatch.org/www.climatewatch.org/climate-watch/'
     user_report_key = '81f6ea43-5c9f-48e0-bdb2-56fc59aafbb4'
   } else {
-    feature_flags_env = feature_flags_env + ' --build-arg FEATURE_LTS_EXPLORE=true --build-arg FEATURE_COMMITMENTS_OVERVIEW=true --build-arg FEATURE_LTS_UPDATED_DATA=true --build-arg FEATURE_ALL_COMMITMENTS_MENU_ITEMS=true'
+    feature_flags_env = feature_flags_env + ' --build-arg FEATURE_LTS_EXPLORE=true --build-arg FEATURE_COMMITMENTS_OVERVIEW=true --build-arg FEATURE_LTS_UPDATED_DATA=true --build-arg FEATURE_NEW_GHG=true --build-arg FEATURE_ALL_COMMITMENTS_MENU_ITEMS=true'
   }
 
   // env vars with build-arg
@@ -104,7 +104,6 @@ node {
           def userInput = true
           def didTimeout = false
           try {
-            slackSend (color: '#551A8B', channel: '#climate-watch-dev', message: "WAITING APPROVAL ON JENKINS (90seconds): Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})")
             timeout(time: 90, unit: 'SECONDS') {
               userInput = input(
                 id: 'Proceed1', message: 'Confirm deployment', parameters: [
@@ -114,7 +113,6 @@ node {
           }
           catch(err) { // timeout reached or input false
               sh("echo Aborted by user or timeout")
-              slackSend (color: '#FFA500', channel: '#climate-watch-dev', message: "CANCELLED (lack of approval): Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})")
               if('SYSTEM' == user.toString()) { // SYSTEM means timeout.
                   didTimeout = true
               } else {
