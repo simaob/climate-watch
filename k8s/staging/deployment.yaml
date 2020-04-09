@@ -20,7 +20,7 @@ spec:
                   - key: type
                     operator: In
                     values:
-                      - climate-watch
+                      - webapps
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
           - weight: 100
