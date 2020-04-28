@@ -14,6 +14,8 @@ import { GHG_TABLE_HEADER } from 'data/constants';
 import GhgEmissionsComponent from './ghg-emissions-component';
 import { getGHGEmissions } from './ghg-emissions-selectors/ghg-emissions-selectors';
 
+const FEATURE_NEW_GHG = process.env.FEATURE_NEW_GHG === 'true';
+
 const mapStateToProps = (state, props) => {
   const { location } = props;
   const search = location && location.search && qs.parse(location.search);
@@ -31,19 +33,53 @@ function GhgEmissionsContainer(props) {
     tableData,
     data
   } = props;
+
+  // Data Zoom Logic
+  const DATA_ZOOM_START_POSITION = {
+    min: 0,
+    max: 0
+  };
+  const [dataZoomPosition, setDataZoomPosition] = useState(
+    DATA_ZOOM_START_POSITION
+  );
+  const [years, setYears] = useState(null);
+  const [updatedData, setUpdatedData] = useState(data);
+
+  const resetDataZoom = () => {
+    setDataZoomPosition(DATA_ZOOM_START_POSITION);
+    setYears(null);
+  };
+
+  useEffect(() => {
+    if (data) {
+      if (years) {
+        setUpdatedData(data.filter(d => d.x >= years.min && d.x <= years.max));
+      } else {
+        setUpdatedData(data);
+      }
+    }
+  }, [years, data]);
+
   useEffect(() => {
     const { sourceSelected } = selected;
     if (!(search && search.source) && sourceSelected) {
-      updateUrlParam({ name: 'source', value: sourceSelected.name });
+      updateUrlParam({
+        name: 'source',
+        value: FEATURE_NEW_GHG ? sourceSelected.name : sourceSelected.value
+      });
     }
   }, []);
 
   const handleSourcesChange = category => {
     updateUrlParam([
-      { name: 'source', value: category.name },
+      {
+        name: 'source',
+        value: FEATURE_NEW_GHG ? category.name : category.value
+      },
       { name: 'sectors', value: null },
       { name: 'gases', value: null }
     ]);
+    resetDataZoom();
     handleAnalytics('Historical Emissions', 'Source selected', category.label);
   };
 
@@ -52,9 +88,18 @@ function GhgEmissionsContainer(props) {
     handleAnalytics('Historical Emissions', 'Break by selected', breakBy.label);
   };
 
+  const handleCalculationChange = calculation => {
+    updateUrlParam({ name: 'calculation', value: calculation.value });
+    handleAnalytics(
+      'Historical Emissions',
+      'Calculation selected',
+      calculation.label
+    );
+  };
+
   const handleChartTypeChange = type => {
     updateUrlParam({ name: 'chartType', value: type.value });
-    handleAnalytics('Chart Type', 'chart type selected', type.label);
+    handleAnalytics('Chart Type', 'Chart type selected', type.label);
   };
 
   const handleRegionsChange = filters => {
@@ -83,7 +128,7 @@ function GhgEmissionsContainer(props) {
     updateUrlParam({
       name: [field],
       value: castArray(filters)
-        .map(v => kebabCase(v.label))
+        .map(v => (FEATURE_NEW_GHG ? kebabCase(v.label) : v.value))
         .join(',')
     });
     sendToAnalitics(field, filters);
@@ -97,6 +142,7 @@ function GhgEmissionsContainer(props) {
       regions: handleRegionsChange,
       sources: handleSourcesChange,
       breakBy: handleBreakByChange,
+      calculation: handleCalculationChange,
       chartType: handleChartTypeChange
     };
     return changeFunctions[field](optionSelected);
@@ -135,19 +181,6 @@ function GhgEmissionsContainer(props) {
     return 200;
   };
 
-  // Data Zoom Logic
-  const [years, setYears] = useState(null);
-  const [updatedData, setUpdatedData] = useState(data);
-  useEffect(() => {
-    if (data) {
-      if (years) {
-        setUpdatedData(data.filter(d => d.x >= years.min && d.x <= years.max));
-      } else {
-        setUpdatedData(data);
-      }
-    }
-  }, [years, data]);
-
   return (
     <GhgEmissionsComponent
       {...props}
@@ -158,6 +191,8 @@ function GhgEmissionsContainer(props) {
       handleDownloadDataClick={handleDownloadDataClick}
       setColumnWidth={setColumnWidth}
       setYears={setYears}
+      dataZoomPosition={dataZoomPosition}
+      setDataZoomPosition={setDataZoomPosition}
     />
   );
 }
