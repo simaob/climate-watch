@@ -8,13 +8,12 @@ import qs from 'query-string';
 import castArray from 'lodash/castArray';
 import kebabCase from 'lodash/kebabCase';
 import { actions } from 'components/modal-metadata';
+import { actions as pngModalActions } from 'components/modal-png-download';
 import { encodeAsCSVContent, invokeCSVDownload } from 'utils/csv';
 import { orderByColumns, stripHTML } from 'utils';
 import { GHG_TABLE_HEADER } from 'data/constants';
 import GhgEmissionsComponent from './ghg-emissions-component';
 import { getGHGEmissions } from './ghg-emissions-selectors/ghg-emissions-selectors';
-
-const FEATURE_NEW_GHG = process.env.FEATURE_NEW_GHG === 'true';
 
 const mapStateToProps = (state, props) => {
   const { location } = props;
@@ -65,7 +64,7 @@ function GhgEmissionsContainer(props) {
     if (!(search && search.source) && sourceSelected) {
       updateUrlParam({
         name: 'source',
-        value: FEATURE_NEW_GHG ? sourceSelected.name : sourceSelected.value
+        value: sourceSelected.name
       });
     }
   }, []);
@@ -74,7 +73,7 @@ function GhgEmissionsContainer(props) {
     updateUrlParam([
       {
         name: 'source',
-        value: FEATURE_NEW_GHG ? category.name : category.value
+        value: category.name
       },
       { name: 'sectors', value: null },
       { name: 'gases', value: null }
@@ -128,7 +127,7 @@ function GhgEmissionsContainer(props) {
     updateUrlParam({
       name: [field],
       value: castArray(filters)
-        .map(v => (FEATURE_NEW_GHG ? kebabCase(v.label) : v.value))
+        .map(v => kebabCase(v.label))
         .join(',')
     });
     sendToAnalitics(field, filters);
@@ -176,6 +175,11 @@ function GhgEmissionsContainer(props) {
     invokeCSVDownload(csvContentEncoded);
   };
 
+  const handlePngDownloadModal = () => {
+    const { setModalPngDownload } = props;
+    setModalPngDownload({ open: true });
+  };
+
   const setColumnWidth = column => {
     if (column === GHG_TABLE_HEADER[fieldToBreakBy]) return 300;
     return 200;
@@ -189,6 +193,7 @@ function GhgEmissionsContainer(props) {
       handleChange={handleChange}
       handleInfoClick={handleInfoClick}
       handleDownloadDataClick={handleDownloadDataClick}
+      handlePngDownloadModal={handlePngDownloadModal}
       setColumnWidth={setColumnWidth}
       setYears={setYears}
       dataZoomPosition={dataZoomPosition}
@@ -215,5 +220,7 @@ GhgEmissionsContainer.defaultProps = {
 };
 
 export default withRouter(
-  connect(mapStateToProps, actions)(GhgEmissionsContainer)
+  connect(mapStateToProps, { ...actions, ...pngModalActions })(
+    GhgEmissionsContainer
+  )
 );
