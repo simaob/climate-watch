@@ -6,6 +6,7 @@ import Icon from 'components/icon';
 import cx from 'classnames';
 import compareSubmittedIcon from 'assets/icons/compare-submitted.svg';
 import compareNotSubmittedIcon from 'assets/icons/compare-not-submitted.svg';
+import compareIntendsIcon from 'assets/icons/compare-intends.svg';
 import { Table } from 'cw-components';
 import NoContent from 'components/no-content';
 import Loading from 'components/loading';
@@ -14,7 +15,12 @@ import { DOCUMENT_COLUMNS_SLUGS } from 'data/country-documents';
 
 import styles from './ndc-compare-all-targets-table-styles.scss';
 
-const cellRenderer = (cell, selectedTargets, columns, setSelectedTargets) => {
+const cellRenderer = (
+  cell,
+  selectedTargets = [],
+  columns,
+  setSelectedTargets
+) => {
   const { cellData, dataKey, columnIndex, rowData } = cell;
   const id = `${rowData.Country.iso}-${DOCUMENT_COLUMNS_SLUGS[dataKey]}`;
   const isActive = selectedTargets.includes(id);
@@ -35,35 +41,52 @@ const cellRenderer = (cell, selectedTargets, columns, setSelectedTargets) => {
   if (dataKey === 'Share of global GHG emissions') {
     return cellData;
   }
-  if (cellData === 'yes') {
-    const isDisabled = !isActive && !canSelect;
-    return (
-      <Button
-        onClick={() => addSelectedTarget(id)}
-        className={cx(
-          styles.iconButton,
-          { [styles.clickable]: isActive || canSelect },
-          { [styles.lastColumn]: isLastColumn },
-          { [styles.active]: isActive }
-        )}
-        disabled={isDisabled}
-        title={
-          isDisabled
-            ? 'You can select a maximum of 3 documents'
-            : 'Select document to compare'
-        }
-      >
-        <Icon icon={compareSubmittedIcon} className={styles.submitIcon} />
-      </Button>
-    );
+  switch (cellData) {
+    case 'yes': {
+      const isDisabled = !isActive && !canSelect;
+      return (
+        <Button
+          onClick={() => addSelectedTarget(id)}
+          className={cx(
+            styles.iconButton,
+            { [styles.clickable]: isActive || canSelect },
+            { [styles.lastColumn]: isLastColumn },
+            { [styles.active]: isActive }
+          )}
+          disabled={isDisabled}
+          title={
+            isDisabled
+              ? 'You can select a maximum of 3 documents'
+              : 'Select document to compare'
+          }
+        >
+          <Icon icon={compareSubmittedIcon} className={styles.submitIcon} />
+        </Button>
+      );
+    }
+    case 'intends': {
+      return (
+        <button
+          className={cx(styles.iconButton, {
+            [styles.lastColumn]: isLastColumn
+          })}
+        >
+          <Icon icon={compareIntendsIcon} className={styles.submitIcon} />
+        </button>
+      );
+    }
+    default: {
+      return (
+        <button
+          className={cx(styles.iconButton, {
+            [styles.lastColumn]: isLastColumn
+          })}
+        >
+          <Icon icon={compareNotSubmittedIcon} className={styles.submitIcon} />
+        </button>
+      );
+    }
   }
-  return (
-    <button
-      className={cx(styles.iconButton, { [styles.lastColumn]: isLastColumn })}
-    >
-      <Icon icon={compareNotSubmittedIcon} className={styles.submitIcon} />
-    </button>
-  );
 };
 
 const CompareAllTable = ({
