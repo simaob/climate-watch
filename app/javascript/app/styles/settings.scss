@@ -17,6 +17,9 @@ $font-weight-light: 300;
 $font-weight: 400;
 $font-weight-semi-bold: 500;
 $font-weight-bold: 600;
+$font-weight-very-bold: 900;
+
+$font-style-italic: italic;
 
 // line height
 $line-height-xs: 0.85;
@@ -42,6 +45,7 @@ $footer-height: 43px;
 $card-content-margin: 15px;
 $paragraph-max-width: 770px;
 $logos-top-bottom-margin: 15px;
+$button-groups-gap: 20px;
 
 // Colors
 $black: #333;
@@ -216,6 +220,7 @@ $google: #d8483b;
 // box-shadow
 $box-shadow-light: 0 2px 10px 0 $gray3;
 $box-shadow-card: 0 2px 20px 0 $shadow-gray;
+$box-shadow-flying-dropdown: 0 0 20px 0 $shadow-gray;
 
 // border
 $dropdown-border: 2.5px solid $gray3;

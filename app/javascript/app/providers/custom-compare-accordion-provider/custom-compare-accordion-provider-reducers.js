@@ -8,8 +8,8 @@ const setLoading = (loading, state) => ({ ...state, loading });
 const setLoaded = (loaded, state) => ({ ...state, loaded });
 
 export default {
-  fetchNdcsCountryAccordionInit: state => setLoading(true, state),
-  fetchNdcsCountryAccordionReady: (state, { payload }) => {
+  fetchCustomCompareAccordionInit: state => setLoading(true, state),
+  fetchCustomCompareAccordionReady: (state, { payload }) => {
     const newState = {
       ...state,
       data: payload
@@ -17,7 +17,7 @@ export default {
 
     return setLoaded(true, setLoading(false, newState));
   },
-  fetchNdcsCountryAccordionFailed: state => {
+  fetchCustomCompareAccordionFailed: state => {
     const newState = {
       ...state,
       data: {}

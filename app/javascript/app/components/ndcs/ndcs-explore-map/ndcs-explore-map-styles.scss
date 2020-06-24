@@ -7,6 +7,7 @@
 
 .map {
   height: 100%;
+  cursor: grab;
 
   > svg {
     height: 100%;
@@ -146,7 +147,16 @@
     }
 
     .summaryCardDescription {
+      font-size: $font-size-sm;
       flex: 3;
+
+      @media #{$desktop} {
+        font-size: $font-size-sm;
+      }
+
+      @media #{$tablet-landscape} {
+        font-size: $font-size-s;
+      }
     }
   }
 }
@@ -200,6 +210,12 @@
   justify-content: left;
 }
 
+.filtersGroup {
+  &.sticky {
+    padding: 10px 0 20px;
+  }
+}
+
 @media #{$tablet-portrait} {
   .filtersGroup {
     @include columns(6);
@@ -241,6 +257,10 @@
 
   @media #{$tablet-landscape} {
     width: 150px;
+  }
+
+  &.padded {
+    padding-top: 10px;
   }
 }
 

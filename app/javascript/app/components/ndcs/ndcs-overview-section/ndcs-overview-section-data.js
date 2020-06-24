@@ -18,16 +18,16 @@ export const commitmentsData = [
       {
         questionText:
           'How many Parties submitted first Nationally Determined Contributions?',
-        link: '/ndcs-explore',
-        slug: 'submission',
+        link: '/ndcs-explore?indicator=submission',
         metadataSlug: 'ndc_cw',
-        answerLabel: 'First NDC Submitted'
+        source: 'countriesDocuments',
+        answerLabel: 'first_ndc'
       },
       {
         questionText: 'How many Parties have submitted Long-Term Strategies?',
-        link: '/lts-tracker',
+        link: '/lts-explore?indicator=lts_submission ',
         slug: 'lts_submission',
-        metadataSlug: 'ndc_cw',
+        metadataSlug: 'ndc_lts',
         answerLabel: 'Long-term Strategy Submitted'
       }
     ]
@@ -43,7 +43,7 @@ export const commitmentsData = [
       {
         questionText:
           'How many Parties intend to enhance ambition or action in their NDCs?',
-        link: '/ndcs-explore',
+        link: '/2020-ndc-tracker',
         slug: 'ndce_status_2020',
         metadataSlug: 'ndc_cw',
         answerLabel: 'Intends to Enhance Ambition or Action in 2020 NDC'
@@ -51,7 +51,7 @@ export const commitmentsData = [
       {
         questionText:
           'How many Parties have submitted an updated or second NDC?',
-        link: '/ndcs-explore',
+        link: '/2020-ndc-tracker',
         slug: 'ndce_status_2020',
         metadataSlug: 'ndc_cw',
         answerLabel: '2020 NDC Submitted'
@@ -69,14 +69,18 @@ export const commitmentsData = [
       {
         questionText: 'How many parties have a net zero emission target?',
         link: 'https://eciu.net/netzerotracker',
-        metadataSlug: 'net_zero',
+        slug: 'lts_zero',
+        answerLabel: 'Net-zero target included',
+        metadataSlug: 'eciu',
         hasExternalLink: true
       },
       {
         questionText:
           'How many parties have an economy-wide target in a national law or policy?',
+        answerLabel: ['In Policy Document', 'In Law'],
         link: 'https://climate-laws.org/',
-        metadataSlug: 'national_laws_policies',
+        slug: 'nz_status',
+        metadataSlug: 'national_laws_politices',
         hasExternalLink: true
       }
     ]

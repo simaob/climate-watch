@@ -37,10 +37,9 @@ const NDCCompareAllContainer = props => {
     setColumnWidthUtil({
       column,
       columns,
-      tableWidth: 1170,
-      narrowColumnWidth: 134,
-      wideColumnWidth: 200,
-      narrowColumns: [0, 2, 3, 4, 5],
+      narrowColumnWidth: 115,
+      wideColumnWidth: 130,
+      narrowColumns: [0, 2, 3, 4, 5, 6, 7, 8, 9],
       wideColumns: [1]
     });
 
@@ -58,7 +57,7 @@ const NDCCompareAllContainer = props => {
   const handleTargetsChange = value => {
     updateUrlParam({
       name: 'targets',
-      value: value.toString()
+      value: value ? value.toString() : undefined
     });
   };
 

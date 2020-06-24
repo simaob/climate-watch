@@ -6,9 +6,11 @@ import qs from 'query-string';
 import { handleAnalytics } from 'utils/analytics';
 import { isCountryIncluded } from 'app/utils';
 import { getLocationParamUpdated } from 'utils/navigation';
+import { IGNORED_COUNTRIES_ISOS } from 'data/ignored-countries';
 
 import fetchActions from 'pages/ndcs/ndcs-actions';
 import { actions as modalActions } from 'components/modal-metadata';
+import exploreMapActions from 'components/ndcs/shared/explore-map/explore-map-actions';
 
 import Component from './ndcs-explore-map-component';
 
@@ -23,10 +25,11 @@ import {
   getCategories,
   getCategoryIndicators,
   getSelectedCategory,
-  getTooltipCountryValues
+  getTooltipCountryValues,
+  getDonutActiveIndex
 } from './ndcs-explore-map-selectors';
 
-const actions = { ...fetchActions, ...modalActions };
+const actions = { ...fetchActions, ...modalActions, ...exploreMapActions };
 
 const mapStateToProps = (state, { location }) => {
   const { data, loading } = state.ndcs;
@@ -67,7 +70,8 @@ const mapStateToProps = (state, { location }) => {
     downloadLink: getLinkToDataExplorer(ndcsExploreWithSelection),
     categories: getCategories(ndcsExploreWithSelection),
     indicators: getCategoryIndicators(ndcsExploreWithSelection),
-    selectedCategory: getSelectedCategory(ndcsExploreWithSelection)
+    selectedCategory: getSelectedCategory(ndcsExploreWithSelection),
+    donutActiveIndex: getDonutActiveIndex(ndcsExploreWithSelection)
   };
 };
 
@@ -104,21 +108,37 @@ class NDCSExploreMapContainer extends PureComponent {
   };
 
   handleCountryEnter = geography => {
-    const { tooltipCountryValues } = this.props;
+    const {
+      tooltipCountryValues,
+      legendData,
+      selectActiveDonutIndex
+    } = this.props;
     const iso = geography.properties && geography.properties.id;
-    const tooltipValues = {
-      value:
-        tooltipCountryValues && tooltipCountryValues[iso]
-          ? tooltipCountryValues[iso].value
-          : 'Not Applicable',
-      emissionsValue:
-        tooltipCountryValues &&
-        tooltipCountryValues[iso] &&
-        tooltipCountryValues[iso].emissionsValue,
-      countryName: geography.properties && geography.properties.name
-    };
 
-    this.setState({ tooltipValues, country: geography.properties });
+    if (IGNORED_COUNTRIES_ISOS.includes(iso)) {
+      // We won't show Taiwan and Western Sahara as an independent country
+      this.setState({ tooltipValues: null, country: null });
+    } else {
+      const tooltipValue = tooltipCountryValues && tooltipCountryValues[iso];
+      if (tooltipValue && tooltipValue.labelId) {
+        const hoveredlegendData = legendData.find(
+          l => parseInt(l.id, 10) === tooltipValue.labelId
+        );
+        if (hoveredlegendData) {
+          selectActiveDonutIndex(legendData.indexOf(hoveredlegendData));
+        }
+      } else {
+        // This is the last legend item aggregating all the no data geographies
+        selectActiveDonutIndex(legendData.length - 1);
+      }
+
+      const tooltipValues = {
+        value: (tooltipValue && tooltipValue.value) || 'Not Applicable',
+        countryName: geography.properties && geography.properties.name
+      };
+
+      this.setState({ tooltipValues, country: geography.properties });
+    }
   };
 
   handleSearchChange = query => {
@@ -143,7 +163,7 @@ class NDCSExploreMapContainer extends PureComponent {
 
   handleInfoClick = () => {
     this.props.setModalMetadata({
-      customTitle: 'NDCS Explore',
+      customTitle: 'Explore NDCs',
       category: 'NDCS Explore Map',
       slugs: ['ndc_cw', 'ndc_wb', 'ndc_die'],
       open: true
@@ -186,6 +206,8 @@ NDCSExploreMapContainer.propTypes = {
   query: PropTypes.object,
   summaryData: PropTypes.array,
   indicator: PropTypes.object,
+  selectActiveDonutIndex: PropTypes.func.isRequired,
+  legendData: PropTypes.array,
   tooltipCountryValues: PropTypes.object
 };
 

@@ -52,7 +52,8 @@ class CountryGhgEmissions extends PureComponent {
       handleInfoClick,
       handleAnalyticsClick,
       isEmbed,
-      isNdcp
+      isNdcp,
+      downloadLink
     } = this.props;
 
     const buttonGroupConfig = isEmbed
@@ -70,7 +71,8 @@ class CountryGhgEmissions extends PureComponent {
         },
         {
           type: 'download',
-          section: 'ghg-emissions'
+          section: 'ghg-emissions',
+          link: downloadLink
         },
         {
           type: 'addToUser'
@@ -117,10 +119,10 @@ class CountryGhgEmissions extends PureComponent {
     const useLineChart =
       calculationSelected.value === CALCULATION_OPTIONS.PER_CAPITA.value ||
       calculationSelected.value === CALCULATION_OPTIONS.PER_GDP.value;
-    const forceFixedFormatDecimals =
+    const customD3Format =
       calculationSelected.value === CALCULATION_OPTIONS.PER_CAPITA.value
-        ? 2
-        : 0;
+        ? '.2f'
+        : '.0f';
 
     return (
       <Chart
@@ -135,7 +137,7 @@ class CountryGhgEmissions extends PureComponent {
         dataSelected={filtersSelected}
         loading={loading}
         height={360}
-        forceFixedFormatDecimals={forceFixedFormatDecimals}
+        customD3Format={customD3Format}
         stepped={sourceSelected.label === 'UNFCCC'}
       />
     );
@@ -222,7 +224,8 @@ CountryGhgEmissions.propTypes = {
   handleAnalyticsClick: PropTypes.func.isRequired,
   handleYearHover: PropTypes.func,
   handleSourceChange: PropTypes.func.isRequired,
-  handleCalculationChange: PropTypes.func.isRequired
+  handleCalculationChange: PropTypes.func.isRequired,
+  downloadLink: PropTypes.string
 };
 
 CountryGhgEmissions.defaultProps = {

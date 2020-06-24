@@ -16,9 +16,32 @@ export const ESP_HOST = ESP_API.replace('/api/v1', '');
 
 export const SOCIAL_APP_NAMES = ['twitter', 'facebook', 'google'];
 
+export const GHG_CALCULATION_OPTIONS = {
+  ABSOLUTE_VALUE: {
+    label: 'Total',
+    value: 'ABSOLUTE_VALUE'
+  },
+  PER_CAPITA: {
+    label: 'per Capita',
+    value: 'PER_CAPITA'
+  },
+  PER_GDP: {
+    label: 'per GDP',
+    value: 'PER_GDP'
+  },
+  CUMULATIVE: {
+    label: 'Cumulative across available years',
+    value: 'CUMULATIVE'
+  },
+  PERCENTAGE_CHANGE: {
+    label: 'Percentage change from prior year',
+    value: 'PERCENTAGE_CHANGE'
+  }
+};
+
 export const CALCULATION_OPTIONS = {
   ABSOLUTE_VALUE: {
-    label: 'Absolute value',
+    label: 'Total',
     value: 'ABSOLUTE_VALUE'
   },
   PER_CAPITA: {
@@ -90,6 +113,19 @@ export const TOP_EMITTERS = [
   'IDN',
   'CAN',
   'MEX'
+];
+
+export const TOP_EMITTERS_REGION_COUNTRIES = [
+  { iso: 'CHN', label: 'China' },
+  { iso: 'USA', label: 'United States' },
+  { iso: 'EUU', label: 'European Union' },
+  { iso: 'IND', label: 'India' },
+  { iso: 'RUS', label: 'Rusia' },
+  { iso: 'JPN', label: 'Japan' },
+  { iso: 'BRA', label: 'Brasil' },
+  { iso: 'IDN', label: 'Indonesia' },
+  { iso: 'CAN', label: 'Canada' },
+  { iso: 'MEX', label: 'Mexico' }
 ];
 
 export const OTHER_COLOR = CHART_NAMED_GRAY_COLORS.grayColor1;
@@ -201,25 +237,6 @@ export const CLIMATE_VULNERABILITY_DEFINITIONS = {
 
 export const DISCLAIMER_SHOWN = 'disclaimerShown';
 
-export const NDC_DOCUMENT_OPTIONS = [
-  {
-    label: 'All documents',
-    value: 'all'
-  },
-  {
-    label: 'NDC',
-    value: 'ndc'
-  },
-  {
-    label: 'INDC',
-    value: 'indc'
-  },
-  {
-    label: 'Second NDC',
-    value: 'ndc2'
-  }
-];
-
 export const CONTAINED_PATHNAME = 'contained';
 
 export const LENSES_SELECTOR_INFO = {
@@ -254,12 +271,13 @@ export const TOP_EMITTERS_OPTION = {
   label: 'Top Emitters',
   value: 'TOP',
   expandsTo: TOP_EMITTERS,
+  regionCountries: TOP_EMITTERS_REGION_COUNTRIES,
   groupId: 'regions'
 };
 
 export const GAS_AGGREGATES = {
   'All GHG': ['CH4', 'CO2', 'F-Gas', 'N2O'],
-  KYOTOGHG: ['CH4', 'CO2', 'HFCS', 'N2O', 'F-Gases'],
+  KYOTOGHG: ['CH4', 'CO2', 'HFCS', 'N2O', 'F-Gas'],
   'Aggregate GHGs': ['CH4', 'CO2', 'HFCs', 'N2O', 'PFCs', 'SF6'],
   'Aggregate F-gases': ['HFCs', 'PFCs', 'SF6']
 };

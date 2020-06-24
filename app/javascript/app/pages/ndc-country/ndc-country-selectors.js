@@ -1,15 +1,39 @@
 import { createSelector } from 'reselect';
 import isEmpty from 'lodash/isEmpty';
 import sortBy from 'lodash/sortBy';
-import upperCase from 'lodash/upperCase';
+import groupBy from 'lodash/groupBy';
 import qs from 'query-string';
+import upperCase from 'lodash/upperCase';
+
+const FEATURE_NDC_FILTERING = process.env.FEATURE_NDC_FILTERING === 'true';
 
 const getIso = state => state.iso || null;
-const getDocuments = state => state.data || null;
-const getCountries = state => sortBy(state.countries, 'wri_standard_name');
+const getDocuments = state => {
+  if (FEATURE_NDC_FILTERING) {
+    if (!state.countriesDocuments || !state.countriesDocuments.data) {
+      return null;
+    }
+    return state.countriesDocuments.data || null;
+  }
+  return state.ndcsDocumentsMeta.data || null;
+};
+
+const getCountries = state => {
+  if (!state.countries || !state.countries.data) {
+    return null;
+  }
+  return sortBy(state.countries.data, 'wri_standard_name');
+};
 
 const getCountryByIso = (countries, iso) =>
-  countries.find(country => country.iso_code3 === iso);
+  (countries ? countries.find(country => country.iso_code3 === iso) : null);
+
+const getSearch = state => {
+  const { search } = state.location;
+  if (!search) return null;
+  const parsedSearch = qs.parse(state.location.search);
+  return parsedSearch || null;
+};
 
 export const getCountry = createSelector(
   [getCountries, getIso],
@@ -17,13 +41,10 @@ export const getCountry = createSelector(
 );
 
 export const getAnchorLinks = createSelector(
-  [
-    state => state.route.routes || [],
-    state => state.iso,
-    state => state.location.search
-  ],
+  [state => state.route.routes || [], state => state.iso, getSearch],
   (routes, iso, search) => {
-    const searchParams = { search: qs.parse(search).search };
+    if (!search) return null;
+    const searchParams = { search: search.search, document: search.document };
     return routes
       .filter(route => route.anchor)
       .map(route => ({
@@ -34,15 +55,71 @@ export const getAnchorLinks = createSelector(
   }
 );
 
-export const getDocumentsOptions = createSelector(
+const getCountryDocuments = createSelector(
   [getDocuments, getIso],
   (documents, iso) => {
     if (isEmpty(documents) || !iso || !documents[iso]) return null;
-    return documents[iso].map(doc => ({
-      label: `${upperCase(doc.document_type)}(${doc.language})`,
-      value: `${doc.document_type}(${doc.language})`,
-      path: `/ndcs/country/${iso}/full?document=${doc.document_type}-${doc.language}`
-    }));
+    return documents[iso];
+  }
+);
+
+const documentOption = document => ({
+  label: document.long_name,
+  value: document.slug
+});
+
+const legacyDocumentValue = document =>
+  `${document.document_type}-${document.language}`;
+
+const legacyDocumentOption = document => ({
+  label: upperCase(document.document_type),
+  value: legacyDocumentValue(document)
+});
+
+export const getDocumentsOptions = createSelector(
+  [getCountryDocuments],
+  documents => {
+    if (isEmpty(documents)) return null;
+    if (FEATURE_NDC_FILTERING) {
+      return sortBy(
+        documents
+          .filter(d => d.is_ndc)
+          .map(document => documentOption(document)),
+        'ordering'
+      );
+    }
+    const groupedDocuments = groupBy(documents, 'document_type');
+    const englishDocuments = Object.values(groupedDocuments).map(
+      docs => docs.find(d => d.language === 'EN') || docs[0]
+    );
+    return englishDocuments.map(document => legacyDocumentOption(document));
+  }
+);
+
+export const getDocumentSelected = createSelector(
+  [getCountryDocuments, getSearch],
+  (documents, search) => {
+    if (!documents || isEmpty(documents)) return null;
+    if (FEATURE_NDC_FILTERING) {
+      if (!search || !search.document) {
+        return documentOption(documents[0]);
+      }
+      const selectedDocument = documents.find(d => d.slug === search.document);
+      return selectedDocument
+        ? documentOption(selectedDocument)
+        : documentOption(documents[0]);
+    }
+
+    if (!search || !search.document) {
+      return legacyDocumentOption(documents[0]);
+    }
+    const selectedDocument = documents.find(
+      d => legacyDocumentValue(d) === search.document
+    );
+
+    return selectedDocument
+      ? legacyDocumentOption(selectedDocument)
+      : legacyDocumentOption(documents[0]);
   }
 );
 

@@ -1,12 +1,12 @@
 /* eslint-disable react/no-danger */
-import React, { PureComponent } from 'react';
+import React, { useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { TabletLandscape } from 'components/responsive';
 import Map from 'components/map';
 import ButtonGroup from 'components/button-group';
 import Loading from 'components/loading';
-import ModalMetadata from 'components/modal-metadata';
 import Dropdown from 'components/dropdown';
+import ModalMetadata from 'components/modal-metadata';
 import { PieChart } from 'cw-components';
 import CustomTooltip from 'components/ndcs/shared/donut-tooltip';
 import ExploreMapTooltip from 'components/ndcs/shared/explore-map-tooltip';
@@ -14,14 +14,21 @@ import HandIconInfo from 'components/ndcs/shared/hand-icon-info';
 import CustomInnerHoverLabel from 'components/ndcs/shared/donut-custom-label';
 import LegendItem from 'components/ndcs/shared/legend-item';
 import ShareButton from 'components/button/share-button';
+import Sticky from 'react-stickynode';
+import cx from 'classnames';
+import CountriesDocumentsProvider from 'providers/countries-documents-provider';
 import ModalShare from 'components/modal-share';
 
 import newMapTheme from 'styles/themes/map/map-new-zoom-controls.scss';
 import layout from 'styles/layout.scss';
 import styles from './ndcs-explore-map-styles.scss';
 
-const renderButtonGroup = (clickHandler, downloadLink) => (
-  <div className={styles.buttonGroupContainer}>
+const renderButtonGroup = (clickHandler, downloadLink, stickyStatus) => (
+  <div
+    className={cx(styles.buttonGroupContainer, {
+      [styles.padded]: stickyStatus !== Sticky.STATUS_ORIGINAL
+    })}
+  >
     <ButtonGroup
       className={styles.buttonGroup}
       buttonsConfig={[
@@ -63,9 +70,10 @@ const renderLegend = legendData => (
   <div className={styles.legendCardContainer}>
     <div className={styles.legendContainer}>
       {legendData &&
-        legendData.map(l => (
+        legendData.map((l, index) => (
           <LegendItem
             key={l.name}
+            index={index}
             name={l.name}
             number={l.partiesNumber}
             value={l.value}
@@ -76,70 +84,74 @@ const renderLegend = legendData => (
   </div>
 );
 
-class NDCSExploreMap extends PureComponent {
-  constructor() {
-    super();
-    this.state = {
-      tooltipParentRef: null,
-      pieChartRef: null
-    };
-  }
+function NDCSExploreMap(props) {
+  const {
+    loading,
+    paths,
+    downloadLink,
+    countryData,
+    emissionsCardData,
+    summaryCardData,
+    legendData,
+    handleInfoClick,
+    handleCountryClick,
+    handleCountryEnter,
+    categories,
+    indicators,
+    selectedIndicator,
+    handleCategoryChange,
+    selectedCategory,
+    handleIndicatorChange,
+    tooltipValues,
+    selectActiveDonutIndex,
+    donutActiveIndex
+  } = props;
 
-  renderDonutChart = emissionsCardData => (
-    <div
-      className={styles.donutContainer}
-      ref={r => {
-        this.setState({ pieChartRef: r });
-      }}
-    >
+  const tooltipParentRef = useRef(null);
+  const pieChartRef = useRef(null);
+  const [stickyStatus, setStickyStatus] = useState(Sticky.STATUS_ORIGINAL);
+  const renderDonutChart = () => (
+    <div className={styles.donutContainer} ref={pieChartRef}>
       <PieChart
+        customActiveIndex={donutActiveIndex}
+        onHover={(_, index) => selectActiveDonutIndex(index)}
         data={emissionsCardData.data}
         width={200}
         config={emissionsCardData.config}
-        customInnerHoverLabel={CustomInnerHoverLabel}
         customTooltip={
           <CustomTooltip
-            reference={this.state.tooltipParentRef}
-            chartReference={this.state.pieChartRef}
+            reference={tooltipParentRef.current}
+            chartReference={pieChartRef.current}
             data={emissionsCardData.data}
           />
         }
+        customInnerHoverLabel={CustomInnerHoverLabel}
         theme={{ pieChart: styles.pieChart }}
       />
     </div>
   );
 
-  render() {
-    const {
-      loading,
-      paths,
-      downloadLink,
-      countryData,
-      emissionsCardData,
-      summaryCardData,
-      legendData,
-      handleInfoClick,
-      handleCountryClick,
-      handleCountryEnter,
-      categories,
-      indicators,
-      selectedIndicator,
-      handleCategoryChange,
-      selectedCategory,
-      handleIndicatorChange,
-      tooltipValues
-    } = this.props;
+  const TOOLTIP_ID = 'ndcs-map-tooltip';
 
-    const TOOLTIP_ID = 'ndcs-map-tooltip';
-    return (
-      <div>
-        <TabletLandscape>
-          {isTablet => (
-            <div className={styles.wrapper}>
+  return (
+    <div>
+      <CountriesDocumentsProvider />
+      <TabletLandscape>
+        {isTablet => (
+          <div className={styles.wrapper}>
+            <Sticky
+              activeClass="sticky -explore"
+              top="#navBarMobile"
+              onStateChange={sticky => setStickyStatus(sticky.status)}
+            >
               <div className={layout.content}>
                 <div className="grid-column-item">
                   <div className={styles.filtersLayout}>
-                    <div className={styles.filtersGroup}>
+                    <div
+                      className={cx(styles.filtersGroup, {
+                        [styles.sticky]: stickyStatus === Sticky.STATUS_FIXED
+                      })}
+                    >
                       <Dropdown
                         label="Category"
                         paceholder="Select a category"
@@ -148,6 +160,9 @@ class NDCSExploreMap extends PureComponent {
                         value={selectedCategory}
                         hideResetButton
                         plain
+                        showTooltip={
+                          selectedCategory && selectedCategory.label.length > 14
+                        }
                       />
                       <Dropdown
                         label="Indicator"
@@ -156,73 +171,78 @@ class NDCSExploreMap extends PureComponent {
                         value={selectedIndicator}
                         hideResetButton
                         plain
+                        showTooltip={
+                          selectedIndicator &&
+                          selectedIndicator.label.length > 14
+                        }
                       />
                     </div>
                     {isTablet &&
-                      renderButtonGroup(handleInfoClick, downloadLink)}
+                      renderButtonGroup(
+                        handleInfoClick,
+                        downloadLink,
+                        stickyStatus
+                      )}
                   </div>
                 </div>
               </div>
-              <div className={styles.containerUpperWrapper}>
-                <div className={layout.content}>
-                  <div className="grid-column-item">
-                    <div className={styles.containerUpper}>
-                      <div
-                        className={styles.containerCharts}
-                        ref={r => {
-                          this.setState({ tooltipParentRef: r });
-                        }}
-                      >
-                        {!loading && (
-                          <React.Fragment>
-                            {summaryCardData && renderSummary(summaryCardData)}
-                            {emissionsCardData &&
-                              this.renderDonutChart(emissionsCardData)}
-                            {legendData && renderLegend(legendData)}
-                          </React.Fragment>
-                        )}
-                      </div>
-                      <div className={styles.containerMap}>
-                        {loading && <Loading light className={styles.loader} />}
-                        <HandIconInfo
-                          className={styles.mapInfo}
-                          text="Explore the interactive map to understand which
-                            countries have submitted new or updated NDCs."
-                        />
-                        <Map
-                          paths={paths}
-                          tooltipId={TOOLTIP_ID}
-                          onCountryClick={handleCountryClick}
-                          onCountryEnter={handleCountryEnter}
-                          onCountryFocus={handleCountryEnter}
-                          zoomEnable
-                          customCenter={isTablet ? [20, 20] : [10, 20]}
-                          theme={newMapTheme}
-                          className={styles.map}
-                        />
-                        {countryData && (
-                          <ExploreMapTooltip
-                            id={TOOLTIP_ID}
-                            isTablet={isTablet}
-                            countryData={countryData}
-                            handleCountryClick={handleCountryClick}
-                            tooltipValues={tooltipValues}
-                          />
-                        )}
-                        {!isTablet &&
-                          renderButtonGroup(handleInfoClick, downloadLink)}
-                      </div>
+            </Sticky>
+            <div className={styles.containerUpperWrapper}>
+              <div className={layout.content}>
+                <div className="grid-column-item">
+                  <div className={styles.containerUpper}>
+                    <div
+                      className={styles.containerCharts}
+                      ref={tooltipParentRef}
+                    >
+                      {!loading && (
+                        <React.Fragment>
+                          {summaryCardData && renderSummary(summaryCardData)}
+                          {emissionsCardData &&
+                            renderDonutChart(emissionsCardData)}
+                          {legendData && renderLegend(legendData)}
+                        </React.Fragment>
+                      )}
                     </div>
-                    <ModalMetadata />
+                    <div className={styles.containerMap}>
+                      {loading && <Loading light className={styles.loader} />}
+                      <HandIconInfo
+                        className={styles.mapInfo}
+                        text="Click on a country to see an in-depth analysis of its NDC"
+                      />
+                      <Map
+                        paths={paths}
+                        tooltipId={TOOLTIP_ID}
+                        onCountryClick={handleCountryClick}
+                        onCountryEnter={handleCountryEnter}
+                        onCountryFocus={handleCountryEnter}
+                        zoomEnable
+                        customCenter={isTablet ? [20, 20] : [10, 20]}
+                        theme={newMapTheme}
+                        className={styles.map}
+                      />
+                      {countryData && (
+                        <ExploreMapTooltip
+                          id={TOOLTIP_ID}
+                          isTablet={isTablet}
+                          countryData={countryData}
+                          handleCountryClick={handleCountryClick}
+                          tooltipValues={tooltipValues}
+                        />
+                      )}
+                      {!isTablet &&
+                        renderButtonGroup(handleInfoClick, downloadLink)}
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          )}
-        </TabletLandscape>
-      </div>
-    );
-  }
+          </div>
+        )}
+      </TabletLandscape>
+      <ModalMetadata />
+    </div>
+  );
 }
 
 NDCSExploreMap.propTypes = {
@@ -231,7 +251,7 @@ NDCSExploreMap.propTypes = {
   downloadLink: PropTypes.string,
   countryData: PropTypes.object,
   emissionsCardData: PropTypes.object,
-  summaryCardData: PropTypes.array,
+  summaryCardData: PropTypes.object,
   legendData: PropTypes.array,
   handleCountryClick: PropTypes.func.isRequired,
   handleCountryEnter: PropTypes.func.isRequired,
@@ -242,7 +262,9 @@ NDCSExploreMap.propTypes = {
   handleCategoryChange: PropTypes.func,
   selectedCategory: PropTypes.object,
   tooltipValues: PropTypes.object,
-  handleIndicatorChange: PropTypes.func
+  handleIndicatorChange: PropTypes.func,
+  selectActiveDonutIndex: PropTypes.func.isRequired,
+  donutActiveIndex: PropTypes.number
 };
 
 export default NDCSExploreMap;

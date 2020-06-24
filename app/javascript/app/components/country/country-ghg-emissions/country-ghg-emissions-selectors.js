@@ -8,6 +8,7 @@ import orderBy from 'lodash/orderBy';
 import flatten from 'lodash/flatten';
 import sumBy from 'lodash/sumBy';
 import { getGhgEmissionDefaults, calculatedRatio } from 'utils/ghg-emissions';
+import { generateLinkToDataExplorer } from 'utils/data-explorer';
 
 import {
   getYColumnValue,
@@ -95,7 +96,8 @@ export const getSourceSelected = createSelector(
       const defaultSource = sources.find(s => s.name === 'CAIT');
       return defaultSource || sources[0];
     }
-    return sources.find(category => category.value === selected);
+
+    return sources.find(category => category.name === selected);
   }
 );
 
@@ -150,6 +152,24 @@ export const getSelectorDefaults = createSelector(
   (sourceSelected, meta) => {
     if (!sourceSelected || !meta || isEmpty(meta)) return null;
     return getGhgEmissionDefaults(sourceSelected, meta);
+  }
+);
+
+export const getDownloadLink = createSelector(
+  [getSourceSelected, getIso, getFilterSelection, getSelectorDefaults],
+  (sourceSelected, iso, filtersSelected, selectorDefaults) => {
+    if (!sourceSelected || !iso || !selectorDefaults) return null;
+    const searchParams = {
+      source: sourceSelected.value,
+      regions: iso,
+      sectors: filtersSelected || '',
+      gases: selectorDefaults.gas
+    };
+    const link = generateLinkToDataExplorer(
+      searchParams,
+      'historical-emissions'
+    );
+    return link;
   }
 );
 
@@ -348,5 +368,6 @@ export default {
   getSourceSelected,
   getFilterOptions,
   getFiltersSelected,
-  getCalculationData
+  getCalculationData,
+  getDownloadLink
 };

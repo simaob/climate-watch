@@ -1,21 +1,25 @@
 # rubocop:disable ClassLength
 class ImportIndc
-  DATA_CAIT_FILEPATH =
-    "#{CW_FILES_PREFIX}indc/NDC_CAIT_data.csv".freeze
-  LEGEND_CAIT_FILEPATH =
-    "#{CW_FILES_PREFIX}indc/NDC_CAIT_legend.csv".freeze
+  DATA_FILEPATH =
+    "#{CW_FILES_PREFIX}indc/NDC_data.csv".freeze
+  SINGLE_VERSION_FILEPATH =
+    "#{CW_FILES_PREFIX}indc/NDC_single_version.csv".freeze
+  LEGEND_FILEPATH =
+    "#{CW_FILES_PREFIX}indc/NDC_legend.csv".freeze
   DATA_LTS_FILEPATH =
     "#{CW_FILES_PREFIX}indc/NDC_LTS_data.csv".freeze
   DATA_LTS_SECTORAL_FILEPATH =
     "#{CW_FILES_PREFIX}indc/NDC_LTS_data_sectoral.csv".freeze
-  DATA_WB_WIDE_FILEPATH =
-    "#{CW_FILES_PREFIX}indc/NDC_WB_data_wide.csv".freeze
   DATA_WB_SECTORAL_FILEPATH =
-    "#{CW_FILES_PREFIX}indc/NDC_WB_data_sectoral.csv".freeze
+    "#{CW_FILES_PREFIX}indc/NDC_WB_data_sectoral_all.csv".freeze
   SUBMISSIONS_FILEPATH =
     "#{CW_FILES_PREFIX}indc/NDC_submission.csv".freeze
   METADATA_FILEPATH =
     "#{CW_FILES_PREFIX}indc/NDC_metadata.csv".freeze
+  DOCUMENTS_FILEPATH =
+    "#{CW_FILES_PREFIX}indc/NDC_documents.csv".freeze
+  PLEDGES_DATA_FILEPATH = "#{CW_FILES_PREFIX}indc/pledges_data.csv".freeze
+  COMPARISON_FILEPATH = "#{CW_FILES_PREFIX}indc/comparison_matrix.csv".freeze
 
   def call
     ActiveRecord::Base.transaction do
@@ -24,6 +28,7 @@ class ImportIndc
       load_csvs
       load_locations
 
+      import_documents
       import_sources
       import_category_types
       import_categories
@@ -31,7 +36,7 @@ class ImportIndc
       import_indicators
       import_indicators_categories
       import_labels
-      import_values_cait
+      import_values_ndc
 
       import_sectors_lts
       import_values_lts
@@ -40,8 +45,11 @@ class ImportIndc
       import_sectors_wb
       import_values_wb
 
+      import_values_pledges
+
       reject_map_indicators_without_values_or_labels
       import_submissions
+      import_comparison_slugs
       Indc::SearchableValue.refresh
     end
   end
@@ -57,6 +65,7 @@ class ImportIndc
     Indc::Indicator.delete_all
     Indc::Source.delete_all
     Indc::Submission.delete_all
+    Indc::Document.delete_all
   end
 
   def load_csvs
@@ -64,18 +73,19 @@ class ImportIndc
     symbol_converter = lambda { |h|
       h.downcase.gsub(/[^\s\w-]+/, '').strip.gsub(/\s+/, '_').to_sym
     }
-    @cait_data = S3CSVReader.read(
-      DATA_CAIT_FILEPATH, [symbol_converter]
-    ).map(&:to_h)
-    @cait_labels = S3CSVReader.read(LEGEND_CAIT_FILEPATH).map(&:to_h)
+    @documents = S3CSVReader.read(DOCUMENTS_FILEPATH, [symbol_converter]).map(&:to_h)
+    @ndc_data = S3CSVReader.read(DATA_FILEPATH, [symbol_converter]).map(&:to_h)
+    @single_version_data = S3CSVReader.read(SINGLE_VERSION_FILEPATH, [symbol_converter]).map(&:to_h)
+    @labels = S3CSVReader.read(LEGEND_FILEPATH).map(&:to_h)
     @lts_data = S3CSVReader.read(
       DATA_LTS_FILEPATH, [symbol_converter]
     ).map(&:to_h)
     @lts_sectoral_data = S3CSVReader.read(DATA_LTS_SECTORAL_FILEPATH).map(&:to_h)
-    @wb_wide_data = S3CSVReader.read(DATA_WB_WIDE_FILEPATH).map(&:to_h)
     @wb_sectoral_data = S3CSVReader.read(DATA_WB_SECTORAL_FILEPATH).map(&:to_h)
     @metadata = S3CSVReader.read(METADATA_FILEPATH).map(&:to_h)
     @submissions = S3CSVReader.read(SUBMISSIONS_FILEPATH).map(&:to_h)
+    @pledges_data = S3CSVReader.read(PLEDGES_DATA_FILEPATH).map(&:to_h)
+    @comparison_indicators = S3CSVReader.read(COMPARISON_FILEPATH).map(&:to_h)
   end
 
   def load_locations
@@ -105,11 +115,15 @@ class ImportIndc
       slug: indicator[:column_name],
       description: indicator[:definition],
       source: @sources_index[indicator[:source]],
-      order: index * 10
+      order: index * 10,
+      multiple_versions: indicator[:multiple_version]
     }
   end
 
-  def value_cait_attributes(row, location, indicator)
+  # for datasets that don't have multiple files we can pass the doc_slug
+  # as a param, for example for LTS
+  def value_ndc_attributes(row, location, indicator, doc_slug = nil)
+    doc_slug ||= row[:document]&.parameterize&.gsub('-', '_')
     {
       location: location,
       indicator: indicator,
@@ -117,26 +131,42 @@ class ImportIndc
         value: row[:"#{indicator.slug}_label"],
         indicator: indicator
       ),
-      value: row[:"#{indicator.slug}"]
+      value: row[:"#{indicator.slug}"],
+      document: Indc::Document.find_by(slug: doc_slug)
     }
   end
 
   def value_wb_attributes(row, location, indicator)
+    doc_slug = row[:document]&.parameterize&.gsub('-', '_')
     {
       location: location,
       indicator: indicator,
       sector: @sectors_index[row[:subsector]],
-      value: row[:responsetext]
+      value: row[:responsetext],
+      document: Indc::Document.find_by(slug: doc_slug)
+    }
+  end
+
+  def document_attributes(doc)
+    doc_slug = doc[:slug]&.parameterize&.gsub('-', '_')
+    {
+      ordering: doc[:order_number],
+      slug: doc_slug,
+      long_name: doc[:long_name],
+      description: doc[:description],
+      is_ndc: doc[:is_ndc]
     }
   end
 
   def submission_attributes(location, submission)
+    doc_slug = submission[:type]&.parameterize&.gsub('-', '_')
     {
       location: location,
       submission_type: submission[:type],
       language: submission[:language],
       submission_date: submission[:date_of_submission],
-      url: submission[:url]
+      url: submission[:url],
+      document_id: ::Indc::Document.find_by(slug: doc_slug)&.id
     }
   end
 
@@ -178,6 +208,8 @@ class ImportIndc
   # rubocop:disable MethodLength
   def import_category_relations
     @metadata.each do |r|
+      next unless r[:global_category]
+
       global_category = Indc::Category.
         includes(:category_type).
         find_by(
@@ -252,7 +284,7 @@ class ImportIndc
   end
 
   def import_labels
-    indicators = @cait_labels.group_by { |l| l[:indicator_name] }.
+    indicators = @labels.group_by { |l| l[:indicator_name] }.
       map { |k, v| [k, v.map { |i| {label: i[:legend_item], slug: i[:slug]} }] }.
       to_h
 
@@ -283,11 +315,13 @@ class ImportIndc
     end
   end
 
-  def import_values_cait
+  def import_values_ndc
+    valid_sources = [@sources_index['CAIT'], @sources_index['NDC Explorer'],
+                     @sources_index['WB'], @sources_index['Net Zero Tracker']]
     Indc::Indicator.
-      where(source: [@sources_index['CAIT'], @sources_index['NDC Explorer']]).
+      where(source: valid_sources).
       each do |indicator|
-      @cait_data.each do |r|
+      (@single_version_data + @ndc_data).each do |r|
         location = @locations_by_iso3[r[:iso]]
         unless location
           Rails.logger.error "location #{r[:country]} not found. Skipping."
@@ -297,7 +331,7 @@ class ImportIndc
         next unless r[:"#{indicator.slug}"].present?
 
         Indc::Value.create!(
-          value_cait_attributes(r, location, indicator)
+          value_ndc_attributes(r, location, indicator)
         )
       end
     end
@@ -316,7 +350,26 @@ class ImportIndc
         next unless r[:"#{indicator.slug}"].present?
 
         Indc::Value.create!(
-          value_cait_attributes(r, location, indicator)
+          value_ndc_attributes(r, location, indicator, 'lts')
+        )
+      end
+    end
+  end
+
+  def import_values_pledges
+    Indc::Indicator.
+      where(source: @sources_index['Pledges']).each do |indicator|
+      @pledges_data.each do |r|
+        location = @locations_by_iso3[r[:iso]]
+        unless location
+          Rails.logger.error "location #{r[:country]} not found. Skipping."
+          next
+        end
+
+        next unless r[:"#{indicator.slug}"].present?
+
+        Indc::Value.create!(
+          value_ndc_attributes(r, location, indicator, 'pledges')
         )
       end
     end
@@ -395,7 +448,7 @@ class ImportIndc
       map { |k, v| [k, v.first] }.
       to_h
 
-    (@wb_wide_data + @wb_sectoral_data).each do |r|
+    @wb_sectoral_data.each do |r|
       location = @locations_by_iso2[r[:countrycode]]
       unless location
         Rails.logger.error "location #{r[:countrycode]} not found. Skipping."
@@ -416,11 +469,28 @@ class ImportIndc
     end
   end
 
+  def import_documents
+    @documents.each do |doc|
+      Indc::Document.create!(document_attributes(doc))
+    end
+  end
+
   def import_submissions
     @submissions.each do |sub|
       location = Location.find_by(iso_code3: sub[:iso])
       next unless location
-      Indc::Submission.create!(submission_attributes(location, sub))
+      begin
+        Indc::Submission.create!(submission_attributes(location, sub))
+      rescue
+      end
+    end
+  end
+
+  def import_comparison_slugs
+    @comparison_indicators.each do |ind|
+      slugs = [ind[:pledges_slug], ind[:ndc_slug], ind[:lts_slug]]
+      Indc::Indicator.where(slug: slugs).update_all(normalized_label: ind[:normalized_label],
+                                                    normalized_slug: ind[:normalized_slug])
     end
   end
 

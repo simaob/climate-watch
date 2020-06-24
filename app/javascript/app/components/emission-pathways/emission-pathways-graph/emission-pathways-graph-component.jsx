@@ -9,6 +9,8 @@ import ButtonGroup from 'components/button-group';
 import ModalOverview from 'components/modal-overview';
 import Dropdown from 'components/dropdown';
 import Chart from 'components/charts/chart';
+import ModalShare from 'components/modal-share';
+import ShareButton from 'components/button/share-button';
 import { TabletLandscape, TabletPortraitOnly } from 'components/responsive';
 
 import layout from 'styles/layout.scss';
@@ -81,27 +83,25 @@ class EmissionPathwayGraph extends PureComponent {
               <h2 className={styles.title}>Pathways</h2>
               <TabletLandscape>
                 <ButtonGroup
-                  className={styles.btnGroup}
+                  className={styles.buttonGroup}
                   buttonsConfig={[
                     {
                       type: 'info',
                       onClick: handleInfoClick
                     },
                     {
-                      type: 'share',
-                      shareUrl: '/embed/pathways',
-                      analyticsGraphName: 'Pathways',
-                      positionRight: true
-                    },
-                    {
                       type: 'download',
-                      section: 'pathways',
+                      section: 'ndcs-content',
                       link: downloadLink
                     },
                     {
                       type: 'addToUser'
                     }
                   ]}
+                />
+                <ShareButton
+                  className={styles.shareButton}
+                  sharePath="/pathways"
                 />
               </TabletLandscape>
             </div>
@@ -112,7 +112,8 @@ class EmissionPathwayGraph extends PureComponent {
                 label="Country/Region"
                 options={filtersOptions.locations}
                 onValueChange={option =>
-                  handleSelectorChange(option, 'currentLocation')}
+                  handleSelectorChange(option, 'currentLocation')
+                }
                 value={filtersSelected.location}
                 hideResetButton
               />
@@ -131,7 +132,8 @@ class EmissionPathwayGraph extends PureComponent {
                 hideResetButton
                 disabled={filtersDisabled}
                 onValueChange={option =>
-                  handleSelectorChange(option, 'category')}
+                  handleSelectorChange(option, 'category')
+                }
                 value={filtersSelected.category}
               />
               <Dropdown
@@ -141,7 +143,8 @@ class EmissionPathwayGraph extends PureComponent {
                 hideResetButton
                 disabled={filtersDisabled}
                 onValueChange={option =>
-                  handleSelectorChange(option, 'subcategory')}
+                  handleSelectorChange(option, 'subcategory')
+                }
                 value={filtersSelected.subcategory}
               />
               <Dropdown
@@ -151,7 +154,8 @@ class EmissionPathwayGraph extends PureComponent {
                 hideResetButton
                 disabled={filtersDisabled}
                 onValueChange={option =>
-                  handleSelectorChange(option, 'indicator')}
+                  handleSelectorChange(option, 'indicator')
+                }
                 value={filtersSelected.indicator}
               />
             </div>
@@ -169,35 +173,34 @@ class EmissionPathwayGraph extends PureComponent {
             loading={loading}
             error={error}
             targetParam="scenario"
-            forceFixedFormatDecimals={3}
+            customD3Format={'.3f'}
             margin={{ top: 50 }}
             espGraph
             model={model || null}
           />
           <TabletPortraitOnly>
-            <ButtonGroup
-              className={styles.btnGroup}
-              buttonsConfig={[
-                {
-                  type: 'info',
-                  onClick: handleInfoClick
-                },
-                {
-                  type: 'share',
-                  shareUrl: '/embed/pathways',
-                  analyticsGraphName: 'Pathways',
-                  positionRight: true
-                },
-                {
-                  type: 'download',
-                  section: 'pathways',
-                  link: downloadLink
-                },
-                {
-                  type: 'addToUser'
-                }
-              ]}
-            />
+            <div className="grid-column-item">
+              <div className={styles.buttonsWrapper}>
+                <ButtonGroup
+                  className={styles.buttonGroup}
+                  buttonsConfig={[
+                    {
+                      type: 'info',
+                      onClick: handleInfoClick
+                    },
+                    {
+                      type: 'download',
+                      section: 'ndcs-content',
+                      link: downloadLink
+                    },
+                    {
+                      type: 'addToUser'
+                    }
+                  ]}
+                />
+                <ShareButton className={styles.shareButton} />
+              </div>
+            </div>
           </TabletPortraitOnly>
           <ModalOverview
             data={modalData}
@@ -209,6 +212,7 @@ class EmissionPathwayGraph extends PureComponent {
             ]}
           />
         </div>
+        <ModalShare analyticsName="Pathways" />
       </div>
     );
   }

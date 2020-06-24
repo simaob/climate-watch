@@ -1,61 +1,99 @@
 @import '~styles/layout.scss';
+@import '~styles/ui-extends.scss';
 
 $min-height: 500px;
 
 .titleContainer {
   @include columns((12, 12));
 
-  @media #{$tablet-landscape} {
-    @include columns((9.4, 2.5));
-  }
+  margin: $gutter-padding 0;
+  align-items: center;
 
-  .colEnd {
-    @media #{$tablet-landscape} {
-      margin-top: $gutter-padding;
-    }
+  @media #{$tablet-landscape} {
+    @include columns((8, 2, 2, 12));
   }
 
   &.containedButtonGroup {
     display: inline-block;
     width: 100%;
 
-    .buttonGroup {
+    .buttonGroupContainer {
       float: right;
-      width: 225px;
+      width: 152px;
       margin: 0;
     }
   }
 }
 
-.buttonGroup {
+.buttonGroupContainer {
   display: flex;
-  padding-bottom: 30px;
+}
 
-  > div {
-    width: 100%;
+.buttonGroup {
+  width: 100%;
+
+  @media #{$tablet-landscape} {
+    width: 150px;
+  }
+}
+
+.shareButton {
+  width: 120px;
+}
+
+.actionsContainer {
+  @include columns((12,12));
+
+  > * {
+    @include xy-gutters($gutter-padding, $gutter-position: 'top');
+  }
+
+  @media #{$tablet-portrait} {
+    @include columns((6, 6));
   }
 }
 
 .col4 {
-  @include columns((6, 6, 6, 6, 8, 4));
+  @include columns(12);
 
   > div {
-    @include xy-gutters(30px, $gutter-position: 'bottom');
+    @include xy-gutters($gutter-padding, $gutter-position: 'bottom');
+  }
+
+  @media #{$tablet-portrait} {
+    @include columns(6);
+
+    align-items: flex-end;
   }
 
   @media #{$tablet-landscape} {
     @include columns((2.1, 2.1, 2.1, 2.1, 2.1, 1.4));
+
+    &.newGHG {
+      @include columns((1.8, 1.8, 1.8, 1.8, 1.8, 1.8, 1.2));
+    }
 
     align-items: flex-end;
   }
 }
 
 .title {
-  font-size: $font-size-large;
-  font-weight: $font-weight;
+  @extend %headline;
+
   color: $theme-color;
-  margin-bottom: 20px;
-  margin-top: 35px;
+  line-height: 45px;
+}
+
+.bodyText {
+  @extend %bodyText;
+
+  color: $theme-color;
+  margin-top: $gutter-padding;
+}
+
+.link {
+  color: $theme-color-medium;
+  text-decoration: underline;
 }
 
 .chartWrapper {
@@ -86,5 +124,35 @@ $min-height: 500px;
     li {
       margin: 5px 0 5px 30px;
     }
+  }
+}
+
+:global .icons-dropdown {
+  &.open {
+    min-width: 240px;
+
+    @media #{$tablet-landscape} {
+      margin-left: -130px;
+      background-color: $white;
+    }
+  }
+}
+
+.tagsWrapper {
+  flex-wrap: wrap;
+  overflow: visible;
+  position: relative;
+  height: unset;
+}
+
+.tags {
+  position: relative;
+  margin-top: $card-content-margin;
+  flex-wrap: wrap;
+
+  li {
+    font-size: $font-size-xs;
+    height: 30px;
+    margin-bottom: $logos-top-bottom-margin;
   }
 }

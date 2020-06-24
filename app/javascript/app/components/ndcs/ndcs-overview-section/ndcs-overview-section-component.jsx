@@ -2,9 +2,11 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
 import { isEmbededComponent } from 'utils/navigation';
+import CountriesDocumentsProvider from 'providers/countries-documents-provider';
+import ModalShare from 'components/modal-share';
+import ModalMetadata from 'components/modal-metadata';
 import layout from 'styles/layout.scss';
 import ShareButton from 'components/button/share-button';
-import ModalShare from 'components/modal-share';
 import styles from './ndcs-overview-section-styles.scss';
 import QuestionCard from './question-card';
 
@@ -17,8 +19,9 @@ const NdcsOverviewSection = ({ data, section, location, handleInfoClick }) => {
         [styles.commitmentContainer]: !isEmbed
       })}
     >
+      {section === 1 && <CountriesDocumentsProvider />}
       <div className={layout.content}>
-        <div className={styles.section}>
+        <div className={cx(styles.section, { [styles.padded]: !isEmbed })}>
           <div className={styles.commitmentWrapper}>
             <div className={styles.commitmentText}>
               <div>
@@ -42,7 +45,6 @@ const NdcsOverviewSection = ({ data, section, location, handleInfoClick }) => {
               className={styles.shareButton}
               sharePath={`/ndc-overview/${section}`}
             />
-            <ModalShare analyticsName="NDC Overview" />
             {questions.map(question => (
               <QuestionCard
                 key={`${question.slug}${question.questionText}`}
@@ -52,6 +54,7 @@ const NdcsOverviewSection = ({ data, section, location, handleInfoClick }) => {
                 color={color}
                 questionText={question.questionText}
                 answerLabel={question.answerLabel}
+                source={question.source}
                 handleInfoClick={handleInfoClick}
                 hasExternalLink={question.hasExternalLink}
               />
@@ -59,6 +62,8 @@ const NdcsOverviewSection = ({ data, section, location, handleInfoClick }) => {
           </div>
         </div>
       </div>
+      <ModalShare analyticsName="NDC Overview" />
+      <ModalMetadata />
     </div>
   );
 };

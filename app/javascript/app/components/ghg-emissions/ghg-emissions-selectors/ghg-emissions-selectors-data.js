@@ -21,13 +21,23 @@ import {
   CHART_COLORS,
   CHART_COLORS_EXTENDED,
   CHART_COLORS_EXTRA,
-  OTHER_COLOR
+  OTHER_COLOR,
+  GHG_CALCULATION_OPTIONS
 } from 'data/constants';
-import { getWBData, getData, getRegions } from './ghg-emissions-selectors-get';
+import { europeSlug } from 'app/data/european-countries';
+import {
+  getWBData,
+  getData,
+  getRegions,
+  getCountries,
+  getDataZoomYears
+} from './ghg-emissions-selectors-get';
 import {
   getModelSelected,
   getMetricSelected,
+  getCalculationSelected,
   getOptionsSelected,
+  getIsRegionAggregated,
   getOptions
 } from './ghg-emissions-selectors-filters';
 
@@ -35,12 +45,18 @@ const LEGEND_LIMIT = 10;
 
 const getShouldExpand = filter =>
   createSelector(
-    [getModelSelected, getOptionsSelected],
-    (modelSelected, selectedOptions) => {
+    [getModelSelected, getOptionsSelected, getIsRegionAggregated],
+    (modelSelected, selectedOptions, isRegionAggregated) => {
       const model = modelSelected && toPlural(modelSelected);
       const dataSelected = selectedOptions[`${filter}Selected`];
 
-      if (!selectedOptions || !model || model !== filter || !dataSelected) {
+      if (
+        isRegionAggregated ||
+        !selectedOptions ||
+        !model ||
+        model !== filter ||
+        !dataSelected
+      ) {
         return false;
       }
 
@@ -295,16 +311,34 @@ export const getChartData = createSelector(
     getModelSelected,
     getYColumnOptions,
     getMetricSelected,
-    getCalculationData
+    getCalculationData,
+    getCalculationSelected,
+    getDataZoomYears
   ],
-  (data, regions, model, yColumnOptions, metric, calculationData) => {
-    if (!data || !data.length || !model || !calculationData || !regions) {
+  (
+    data,
+    regions,
+    model,
+    yColumnOptions,
+    metric,
+    calculationData,
+    calculationSelected,
+    dataZoomYears
+  ) => {
+    if (
+      !data ||
+      !data.length ||
+      !model ||
+      !calculationData ||
+      !regions ||
+      !calculationSelected
+    ) {
       return null;
     }
     const yearValues = data[0].emissions.map(d => d.year);
     const metricField = {
-      PER_CAPITA: 'population',
-      PER_GDP: 'gdp'
+      [GHG_CALCULATION_OPTIONS.PER_CAPITA.value]: 'population',
+      [GHG_CALCULATION_OPTIONS.PER_GDP.value]: 'gdp'
     }[metric];
     const shouldHaveMetricData = !!metricField;
 
@@ -359,9 +393,51 @@ export const getChartData = createSelector(
       return metricData;
     };
 
-    const dataParsed = yearValues.map(year => {
-      const yItems = {};
+    const dataParsed = [];
+    const yItems = {};
+    const accumulatedValues = {};
+    const previousYearValues = {};
 
+    const getItemValue = (totalValue, key, totalMetric, year) => {
+      let scaledValue = totalValue ? totalValue * DATA_SCALE : null;
+
+      if (
+        calculationSelected.value === GHG_CALCULATION_OPTIONS.CUMULATIVE.value
+      ) {
+        if (scaledValue) {
+          if (accumulatedValues[key]) {
+            if (!dataZoomYears || year > dataZoomYears.min) {
+              accumulatedValues[key] += scaledValue;
+            }
+          } else {
+            accumulatedValues[key] = scaledValue;
+          }
+        }
+        scaledValue = accumulatedValues[key] || null;
+      }
+
+      if (
+        calculationSelected.value ===
+        GHG_CALCULATION_OPTIONS.PERCENTAGE_CHANGE.value
+      ) {
+        const currentYearValue = scaledValue || 0;
+        if (scaledValue) {
+          const previousValue = previousYearValues[key];
+          scaledValue = previousValue
+            ? ((scaledValue - previousYearValues[key]) * 100) /
+              previousYearValues[key]
+            : 'n/a';
+        }
+        previousYearValues[key] = currentYearValue;
+      }
+
+      if (scaledValue !== null && totalMetric !== null) {
+        return scaledValue / totalMetric;
+      }
+      return null;
+    };
+
+    yearValues.forEach(year => {
       yColumnOptions.forEach(column => {
         const dataForColumn =
           groupedData[column.label] || expandedData(column) || [];
@@ -383,17 +459,13 @@ export const getChartData = createSelector(
           }
         });
 
-        if (totalValue !== null && totalMetric !== null) {
-          yItems[key] = totalValue * (DATA_SCALE / totalMetric);
-        } else {
-          yItems[key] = null;
-        }
+        yItems[key] = getItemValue(totalValue, key, totalMetric, year);
       });
 
-      return {
+      dataParsed.push({
         x: year,
         ...yItems
-      };
+      });
     });
 
     // if there is no value for any legend item
@@ -449,10 +521,18 @@ const getUnit = metric => {
 };
 
 export const getChartConfig = createSelector(
-  [getModelSelected, getMetricSelected, getYColumnOptions],
-  (model, metric, yColumns) => {
+  [
+    getModelSelected,
+    getMetricSelected,
+    getYColumnOptions,
+    getCalculationSelected
+  ],
+  (model, metric, yColumns, calculationSelected) => {
     if (!model || !yColumns) return null;
     const colorPalette = getColorPalette(yColumns);
+    const isPercentageChangeCalculation =
+      calculationSelected.value ===
+      GHG_CALCULATION_OPTIONS.PERCENTAGE_CHANGE.value;
     colorThemeCache = getThemeConfig(yColumns, colorPalette, colorThemeCache);
     const tooltip = getTooltipConfig(yColumns.filter(c => c && !c.hideLegend));
     const unit = getUnit(metric);
@@ -462,7 +542,7 @@ export const getChartConfig = createSelector(
         yLeft: {
           ...DEFAULT_AXES_CONFIG.yLeft,
           unit,
-          suffix: 't'
+          suffix: isPercentageChangeCalculation ? '' : 't'
         }
       },
       theme: colorThemeCache,
@@ -482,8 +562,14 @@ export const getChartConfig = createSelector(
 );
 
 export const getTableData = createSelector(
-  [getChartData, getMetricSelected, getModelSelected, getYColumnOptions],
-  (data, metric, model, yColumnOptions) => {
+  [
+    getChartData,
+    getMetricSelected,
+    getModelSelected,
+    getYColumnOptions,
+    getDataZoomYears
+  ],
+  (data, metric, model, yColumnOptions, dataZoomSelectedYears) => {
     if (!data || !model || !data.length || !yColumnOptions) return null;
 
     const isAbsoluteValue = metric === 'ABSOLUTE_VALUE';
@@ -491,22 +577,76 @@ export const getTableData = createSelector(
     const scaleString = isAbsoluteValue ? 'Mt' : 't';
     const formatValue = value => value && Number((value / scale).toFixed(2));
     const unit = `${scaleString}${getUnit(metric)}`;
-
-    const pivot = yColumnOptions.map(c => ({
+    const filteredYearValue = (d, c) => {
+      if (dataZoomSelectedYears) {
+        const { min, max } = dataZoomSelectedYears;
+        if ((min && d.x < min) || (max && d.x > max)) {
+          return {};
+        }
+      }
+      return { [String(d.x)]: formatValue(d[c.value]) }; // year: value
+    };
+    return yColumnOptions.map(c => ({
       [GHG_TABLE_HEADER[model]]: c.label,
       unit,
       ...data.reduce(
         (acc, d) => ({
           ...acc,
-          [String(d.x)]: formatValue(d[c.value]) // year: value
+          ...filteredYearValue(d, c)
         }),
         {}
       )
     }));
-
-    return pivot;
   }
 );
+
+export const getTitleLinks = createSelector(
+  [getTableData, getModelSelected, getRegions, getCountries],
+  (data, model, regions, countries) => {
+    if (
+      !data ||
+      isEmpty(data) ||
+      !regions ||
+      !countries ||
+      model !== 'regions'
+    ) {
+      return null;
+    }
+    const allRegions = regions
+      .filter(r => r.iso_code3 === europeSlug)
+      .concat(countries);
+    const returnData = data.map(d => {
+      const region = allRegions.find(
+        r => r.wri_standard_name === d[GHG_TABLE_HEADER.regions]
+      );
+      return region && region.iso_code3
+        ? [
+          {
+            columnName: GHG_TABLE_HEADER.regions,
+            url: `/countries/${region.iso_code3}`
+          }
+        ]
+        : [];
+    });
+    return returnData;
+  }
+);
+
+export const getDataZoomData = createSelector([getChartData], data => {
+  if (!data) return null;
+  const t = data.map(d => {
+    const updatedD = {};
+    updatedD.x = d.x;
+    const intermediateD = { ...d };
+    delete intermediateD.x;
+    updatedD.total = Object.values(intermediateD).reduce(
+      (acc, value) => acc + value,
+      0
+    );
+    return updatedD;
+  });
+  return t;
+});
 
 export const getLoading = createSelector(
   [getChartConfig, state => state.ghgEmissionsMeta, state => state.emissions],

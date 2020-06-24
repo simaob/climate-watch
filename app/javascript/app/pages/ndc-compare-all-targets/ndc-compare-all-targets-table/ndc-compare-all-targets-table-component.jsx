@@ -10,11 +10,13 @@ import { Table } from 'cw-components';
 import NoContent from 'components/no-content';
 import Loading from 'components/loading';
 import compareTableTheme from 'styles/themes/table/compare-table-theme.scss';
+import { DOCUMENT_COLUMNS_SLUGS } from 'data/country-documents';
+
 import styles from './ndc-compare-all-targets-table-styles.scss';
 
 const cellRenderer = (cell, selectedTargets, columns, setSelectedTargets) => {
   const { cellData, dataKey, columnIndex, rowData } = cell;
-  const id = `${rowData.Country.iso}-${dataKey}`;
+  const id = `${rowData.Country.iso}-${DOCUMENT_COLUMNS_SLUGS[dataKey]}`;
   const isActive = selectedTargets.includes(id);
   const isLastColumn = columnIndex === columns.length - 1;
 
@@ -34,6 +36,7 @@ const cellRenderer = (cell, selectedTargets, columns, setSelectedTargets) => {
     return cellData;
   }
   if (cellData === 'yes') {
+    const isDisabled = !isActive && !canSelect;
     return (
       <Button
         onClick={() => addSelectedTarget(id)}
@@ -43,7 +46,12 @@ const cellRenderer = (cell, selectedTargets, columns, setSelectedTargets) => {
           { [styles.lastColumn]: isLastColumn },
           { [styles.active]: isActive }
         )}
-        disabled={!isActive && !canSelect}
+        disabled={isDisabled}
+        title={
+          isDisabled
+            ? 'You can select a maximum of 3 documents'
+            : 'Select document to compare'
+        }
       >
         <Icon icon={compareSubmittedIcon} className={styles.submitIcon} />
       </Button>
@@ -76,6 +84,7 @@ const CompareAllTable = ({
     {!loading && tableData && tableData.length > 0 && (
       <Table
         data={tableData}
+        tableHeight={550}
         horizontalScroll
         parseHtml
         dynamicRowsHeight

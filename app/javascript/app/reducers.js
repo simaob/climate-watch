@@ -6,12 +6,15 @@ import { handleActions } from 'app/utils/redux';
 import * as loginProvider from 'providers/login-provider';
 import * as countriesProvider from 'providers/countries-provider';
 import * as regionsProvider from 'providers/regions-provider';
+import * as documentsProvider from 'providers/documents-provider';
+import * as countriesDocumentsProvider from 'providers/countries-documents-provider';
 import * as espLocationsProvider from 'providers/esp-locations-provider';
 import * as espTimeSeriesProvider from 'providers/esp-time-series-provider';
 import * as adaptationsProvider from 'providers/adaptations-provider';
 import * as ndcsSdgsMetaProvider from 'providers/ndcs-sdgs-meta-provider';
 import * as ndcsSdgsDataProvider from 'providers/ndcs-sdgs-data-provider';
 import * as ndcContentOverviewProvider from 'providers/ndc-content-overview-provider';
+import * as ltsContentOverviewProvider from 'providers/lts-content-overview-provider';
 import * as ghgEmissionsProvider from 'providers/ghg-emissions-meta-provider';
 import * as wbCountryProvider from 'providers/wb-country-data-provider';
 import * as timelineProvider from 'providers/timeline-provider';
@@ -35,13 +38,15 @@ import * as agricultureMeatProductionProvider from 'providers/agriculture-meat-p
 import * as agricultureWorldMeatProductionProvider from 'providers/agriculture-world-meat-production-provider';
 import * as agricultureMeatTradeProvider from 'providers/agriculture-meat-trade-provider';
 import * as agricultureWorldMeatTradeProvider from 'providers/agriculture-world-meat-trade-provider';
-import * as ndcCountryAccordionProvider from 'providers/ndc-country-accordion-provider';
 import * as ndcCompareAllTargetsProvider from 'providers/ndc-compare-all-targets-provider';
+import * as customCompareAccordionProvider from 'providers/custom-compare-accordion-provider';
 
 const providersReducers = {
   login: handleActions(loginProvider),
   countries: handleActions(countriesProvider),
   regions: handleActions(regionsProvider),
+  documents: handleActions(documentsProvider),
+  countriesDocuments: handleActions(countriesDocumentsProvider),
   adaptations: handleActions(adaptationsProvider),
   emissions: handleActions(emissionsProvider),
   ndcsSdgsMeta: handleActions(ndcsSdgsMetaProvider),
@@ -52,6 +57,7 @@ const providersReducers = {
   timeline: handleActions(timelineProvider),
   ndcsDocumentsMeta: handleActions(ndcsDocumentsMetaProvider),
   ndcContentOverview: handleActions(ndcContentOverviewProvider),
+  ltsContentOverview: handleActions(ltsContentOverviewProvider),
   espModels: handleActions(espModelsProvider),
   espScenarios: handleActions(espScenariosProvider),
   espIndicators: handleActions(espIndicatorsProvider),
@@ -73,8 +79,8 @@ const providersReducers = {
   meatWorldProduction: handleActions(agricultureWorldMeatProductionProvider),
   meatTrade: handleActions(agricultureMeatTradeProvider),
   meatWorldTrade: handleActions(agricultureWorldMeatTradeProvider),
-  ndcCountryAccordion: handleActions(ndcCountryAccordionProvider),
-  compareAll: handleActions(ndcCompareAllTargetsProvider)
+  compareAll: handleActions(ndcCompareAllTargetsProvider),
+  customCompareAccordion: handleActions(customCompareAccordionProvider)
 };
 
 // Pages
@@ -99,8 +105,10 @@ const pagesReducers = {
 // Components
 import * as mapComponent from 'components/map';
 import * as autocompleteSearchComponent from 'components/autocomplete-search';
+import * as ndcsAutocompleteSearchComponent from 'components/ndcs/ndcs-autocomplete-search';
 import * as countrySelectComponent from 'components/countries-select';
 import * as modalDownloadComponent from 'components/modal-download';
+import * as modalPngDownloadComponent from 'components/modal-png-download';
 import * as modalMetadataComponent from 'components/modal-metadata';
 import * as shareModalComponent from 'components/modal-share';
 import * as modalESPOverviewComponent from 'components/modal-overview';
@@ -115,12 +123,16 @@ import * as myVisualisationsGraphComponent from 'components/my-climate-watch/my-
 import * as ndcSdgLinkagesComponent from 'components/ndc-sdg/ndc-sdg-linkages-content';
 import * as HamburgerComponent from 'components/hamburger';
 import * as AnchorNavComponent from 'components/anchor-nav';
+import * as ExploreMapShared from 'components/ndcs/shared/explore-map';
+import * as ndcCountryAccordionComponent from 'components/ndcs/ndcs-country-accordion';
 
 const componentsReducers = {
   map: handleActions(mapComponent),
   autocompleteSearch: handleActions(autocompleteSearchComponent),
+  documents: handleActions(ndcsAutocompleteSearchComponent),
   countrySelect: handleActions(countrySelectComponent),
   modalDownload: handleActions(modalDownloadComponent),
+  modalPngDownload: handleActions(modalPngDownloadComponent),
   modalMetadata: handleActions(modalMetadataComponent),
   modalESPOverview: handleActions(modalESPOverviewComponent),
   modalShare: handleActions(shareModalComponent),
@@ -134,7 +146,9 @@ const componentsReducers = {
   espGraph: handleActions(espGraphComponent),
   ndcSdg: handleActions(ndcSdgLinkagesComponent),
   hamburger: handleActions(HamburgerComponent),
-  anchorNav: handleActions(AnchorNavComponent)
+  anchorNav: handleActions(AnchorNavComponent),
+  exploreMap: handleActions(ExploreMapShared),
+  ndcCountryAccordion: handleActions(ndcCountryAccordionComponent)
 };
 
 export default combineReducers({

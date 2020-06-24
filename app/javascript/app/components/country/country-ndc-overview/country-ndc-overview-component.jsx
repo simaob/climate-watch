@@ -1,4 +1,4 @@
-import React, { PureComponent } from 'react';
+import React from 'react';
 import PropTypes from 'prop-types';
 import Button from 'components/button';
 import Card from 'components/card';
@@ -6,26 +6,40 @@ import CardRow from 'components/card/card-row';
 import Intro from 'components/intro';
 import Icon from 'components/icon';
 import cx from 'classnames';
+import moment from 'moment';
 import ModalMetadata from 'components/modal-metadata';
 import Loading from 'components/loading';
 import NoContent from 'components/no-content';
 import ButtonGroup from 'components/button-group';
 import { TabletLandscape, TabletPortraitOnly } from 'components/responsive';
+import introSmallTheme from 'styles/themes/intro/intro-simple-small.scss';
 import introTheme from 'styles/themes/intro/intro-simple.scss';
 import layout from 'styles/layout.scss';
 import cardTheme from 'styles/themes/card/card-overflow-content.scss';
 import alertIcon from 'assets/icons/alert.svg';
 import NdcContentOverviewProvider from 'providers/ndc-content-overview-provider';
+import CountriesDocumentsProvider from 'providers/countries-documents-provider';
 
 import styles from './country-ndc-overview-styles.scss';
 
 const FEATURE_LTS_EXPLORE = process.env.FEATURE_LTS_EXPLORE === 'true';
+const FEATURE_NDC_FILTERING = process.env.FEATURE_NDC_FILTERING === 'true';
 
-class CountryNdcOverview extends PureComponent {
-  // eslint-disable-line react/prefer-stateless-function
+function CountryNdcOverview(props) {
+  const {
+    sectors,
+    values,
+    loading,
+    isCountryPage,
+    iso,
+    isEmbed,
+    isNdcp,
+    handleInfoClick,
+    handleAnalyticsClick,
+    selectedDocument
+  } = props;
 
-  renderInfoButton() {
-    const { handleInfoClick, isEmbed, iso } = this.props;
+  const renderInfoButton = () => {
     const buttonGroupConfig = isEmbed
       ? [{ type: 'info', onClick: handleInfoClick }]
       : [
@@ -44,10 +58,9 @@ class CountryNdcOverview extends PureComponent {
         buttonsConfig={buttonGroupConfig}
       />
     );
-  }
+  };
 
-  renderCompareButton() {
-    const { iso, isNdcp } = this.props;
+  const renderCompareButton = () => {
     const href = `/contained/ndcs/compare/mitigation?locations=${iso}`;
     const link = `/ndcs/compare/mitigation?locations=${iso}`;
     return (
@@ -59,11 +72,9 @@ class CountryNdcOverview extends PureComponent {
         Compare
       </Button>
     );
-  }
+  };
 
-  renderExploreButton() {
-    const { iso, handleAnalyticsClick, isNdcp } = this.props;
-
+  const renderExploreButton = () => {
     const href = `/contained/ndcs/country/${iso}`;
     const link = `/ndcs/country/${iso}`;
 
@@ -78,10 +89,9 @@ class CountryNdcOverview extends PureComponent {
         Explore NDC content
       </Button>
     );
-  }
+  };
 
-  renderLegacyCards() {
-    const { sectors, values } = this.props;
+  const renderLegacyCards = () => {
     const renderSubtitle = (text, paddingLeft) => (
       <h4 className={cx(styles.subTitle, { [styles.paddedLeft]: paddingLeft })}>
         {text}
@@ -187,11 +197,10 @@ class CountryNdcOverview extends PureComponent {
         </div>
       </div>
     );
-  }
+  };
 
-  renderCards() {
-    const { values } = this.props;
-    return FEATURE_LTS_EXPLORE ? (
+  const renderCards = () =>
+    (FEATURE_LTS_EXPLORE ? (
       <div className={styles.cards}>
         <Card title="Contribution Type" theme={cardTheme} contentFirst>
           <div className={styles.cardContent}>
@@ -263,108 +272,110 @@ class CountryNdcOverview extends PureComponent {
         </Card>
       </div>
     ) : (
-      this.renderLegacyCards()
-    );
-  }
+      renderLegacyCards()
+    ));
 
-  // We can only show the alert when we have the filtered by NDC content
-  renderAlertText = () =>
-    null && (
-      <div className={styles.alertContainer}>
-        <div className={styles.alert}>
-          <Icon icon={alertIcon} className={styles.alertIcon} />
-          <span className={styles.alertText}>
-            The information shown below only reflects the latest NDC submission.
-          </span>
-        </div>
+  const renderAlertText = () => (
+    <div className={styles.alertContainer}>
+      <div className={styles.alert}>
+        <Icon icon={alertIcon} className={styles.alertIcon} />
+        <span className={styles.alertText}>
+          The information shown below only reflects the{' '}
+          {FEATURE_NDC_FILTERING && !isCountryPage ? 'selected' : 'last'} NDC
+          submission.
+        </span>
       </div>
-    );
+    </div>
+  );
 
-  render() {
-    const {
-      sectors,
-      values,
-      loading,
-      actions,
-      iso,
-      isEmbed,
-      lastDocument
-    } = this.props;
-    const { date: documentDate } = lastDocument || {};
-    const hasSectors = values && sectors;
-    const description = hasSectors && (
-      <p
-        className={styles.descriptionContainer}
-        // eslint-disable-next-line react/no-danger
-        dangerouslySetInnerHTML={{
-          __html:
-            values.indc_summary &&
-            values.indc_summary[0] &&
-            values.indc_summary[0].value
-        }}
-      />
-    );
-    const summaryIntroText = !lastDocument
+  const { submission_date: documentDate } = selectedDocument || {};
+  const hasSectors = values && sectors;
+  const description = hasSectors && (
+    <div
+      className={cx(styles.descriptionContainer, layout.parsedHTML)}
+      // eslint-disable-next-line react/no-danger
+      dangerouslySetInnerHTML={{
+        __html:
+          values.indc_summary &&
+          values.indc_summary[0] &&
+          values.indc_summary[0].value
+      }}
+    />
+  );
+  const summaryIntroText =
+    !FEATURE_NDC_FILTERING || !selectedDocument
       ? 'Summary'
-      : `Summary of ${lastDocument.document_type &&
-          lastDocument.document_type.toUpperCase()}`;
-    return (
-      <div className={cx(styles.wrapper, { [styles.embededWrapper]: isEmbed })}>
-        {FEATURE_LTS_EXPLORE &&
-          hasSectors &&
-          !loading &&
-          this.renderAlertText()}
-        <NdcContentOverviewProvider locations={[iso]} />
-        {!hasSectors && !loading ? (
-          <NoContent
-            message="No overview content data"
-            className={styles.noContentWrapper}
-          />
-        ) : (
-          <div className="layout-container">
-            {loading && <Loading light className={styles.loader} />}
-            {hasSectors && (
-              <div className={layout.content}>
-                <div className="grid-column-item">
-                  <div
-                    className={cx(styles.header, actions ? styles.col2 : '')}
-                  >
-                    <Intro
-                      theme={introTheme}
-                      title={
-                        actions
-                          ? 'Nationally Determined Contribution (NDC) Overview'
-                          : summaryIntroText
-                      }
-                      subtitle={documentDate && `(submitted[${documentDate}])`}
-                    />
-                    <TabletPortraitOnly>{description}</TabletPortraitOnly>
-                    {actions && (
-                      <div className="grid-column-item">
-                        <div className={styles.actions}>
-                          {this.renderInfoButton()}
-                          {this.renderCompareButton()}
-                          <TabletLandscape>
-                            {this.renderExploreButton()}
-                          </TabletLandscape>
-                        </div>
+      : `Summary of ${selectedDocument.long_name}`;
+
+  return (
+    <div className={cx(styles.wrapper, { [styles.embededWrapper]: isEmbed })}>
+      {(FEATURE_LTS_EXPLORE || !FEATURE_NDC_FILTERING) &&
+        hasSectors &&
+        !loading &&
+        renderAlertText()}
+      {FEATURE_NDC_FILTERING && <CountriesDocumentsProvider location={iso} />}
+      <NdcContentOverviewProvider
+        locations={[iso]}
+        document={
+          FEATURE_NDC_FILTERING &&
+          selectedDocument &&
+          selectedDocument.document_type
+        }
+      />
+      {!hasSectors && !loading ? (
+        <NoContent
+          message="No overview content data"
+          className={styles.noContentWrapper}
+        />
+      ) : (
+        <div className="layout-container">
+          {loading && <Loading light className={styles.loader} />}
+          {hasSectors && (
+            <div className={layout.content}>
+              <div className="grid-column-item">
+                <div
+                  className={cx(styles.header, {
+                    [styles.col2]: isCountryPage
+                  })}
+                >
+                  <Intro
+                    theme={isCountryPage ? introSmallTheme : introTheme}
+                    title={
+                      isCountryPage
+                        ? 'Nationally Determined Contribution (NDC) Overview'
+                        : summaryIntroText
+                    }
+                    subtitle={
+                      documentDate &&
+                      `(submitted ${moment(documentDate).format('MM/DD/YYYY')})`
+                    }
+                  />
+                  <TabletPortraitOnly>{description}</TabletPortraitOnly>
+                  {isCountryPage && (
+                    <div className="grid-column-item">
+                      <div className={styles.actions}>
+                        {renderInfoButton()}
+                        {renderCompareButton()}
+                        <TabletLandscape>
+                          {renderExploreButton()}
+                        </TabletLandscape>
                       </div>
-                    )}
-                  </div>
-                  <TabletLandscape>{description}</TabletLandscape>
-                  {this.renderCards()}
-                  <TabletPortraitOnly>
-                    {actions && this.renderExploreButton()}
-                  </TabletPortraitOnly>
+                    </div>
+                  )}
                 </div>
+                <TabletLandscape>{description}</TabletLandscape>
+                {renderCards()}
+                <TabletPortraitOnly>
+                  {isCountryPage && renderExploreButton()}
+                </TabletPortraitOnly>
               </div>
-            )}
-          </div>
-        )}
-        <ModalMetadata />
-      </div>
-    );
-  }
+            </div>
+          )}
+        </div>
+      )}
+      <ModalMetadata />
+    </div>
+  );
 }
 
 CountryNdcOverview.propTypes = {
@@ -372,11 +383,11 @@ CountryNdcOverview.propTypes = {
   sectors: PropTypes.array,
   values: PropTypes.object,
   loading: PropTypes.bool,
-  actions: PropTypes.bool,
+  isCountryPage: PropTypes.bool,
   isNdcp: PropTypes.bool,
   isEmbed: PropTypes.bool,
   handleInfoClick: PropTypes.func.isRequired,
-  lastDocument: PropTypes.object,
+  selectedDocument: PropTypes.object,
   handleAnalyticsClick: PropTypes.func.isRequired
 };
 

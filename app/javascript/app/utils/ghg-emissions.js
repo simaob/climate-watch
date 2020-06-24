@@ -1,4 +1,8 @@
-import { DEFAULT_EMISSIONS_SELECTIONS, CALCULATION_OPTIONS } from 'data/constants';
+import {
+  DEFAULT_EMISSIONS_SELECTIONS,
+  GHG_CALCULATION_OPTIONS
+} from 'data/constants';
+import kebabCase from 'lodash/kebabCase';
 
 export const getGhgEmissionDefaults = (source, meta) => {
   const sourceName = source.name || source.label;
@@ -13,13 +17,26 @@ export const getGhgEmissionDefaults = (source, meta) => {
   };
 };
 
+export const getGhgEmissionDefaultSlugs = (source, meta) => {
+  const sourceName = source.name || source.label;
+  const defaults = DEFAULT_EMISSIONS_SELECTIONS[sourceName];
+  if (!defaults) return {};
+  const gas = meta.gas.find(g => g.label === defaults.gas);
+  const sector = meta.sector.find(s => s.label === defaults.sector);
+  return {
+    gas: gas && kebabCase(gas.label),
+    sector: sector && kebabCase(sector.label),
+    location: defaults.location
+  };
+};
+
 export const calculatedRatio = (selected, calculationData, x) => {
   if (!calculationData || !calculationData[x]) return 1;
-  if (selected === CALCULATION_OPTIONS.PER_GDP.value) {
+  if (selected === GHG_CALCULATION_OPTIONS.PER_GDP.value) {
     // GDP is in dollars and we want to display it in million dollars
     return calculationData[x][0].gdp / 1000000;
   }
-  if (selected === CALCULATION_OPTIONS.PER_CAPITA.value) {
+  if (selected === GHG_CALCULATION_OPTIONS.PER_CAPITA.value) {
     return calculationData[x][0].population;
   }
   return 1;

@@ -50,6 +50,7 @@ class EmissionPathwayGraph extends PureComponent {
       },
       {
         type: 'share',
+        shareUrl: '/embed/agriculture-emission/pathways',
         analyticsGraphName: 'Drivers of Emissions',
         positionRight: true
       },
@@ -163,7 +164,7 @@ class EmissionPathwayGraph extends PureComponent {
           loading={loading}
           error={error}
           targetParam="scenario"
-          forceFixedFormatDecimals={3}
+          customD3Format={'.3f'}
           margin={{ top: 50 }}
           espGraph
           model={model || null}

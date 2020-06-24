@@ -5,22 +5,9 @@ SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', '', false);
 SET check_function_bodies = false;
+SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
-
---
--- Name: plpgsql; Type: EXTENSION; Schema: -; Owner: -
---
-
-CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
-
-
---
--- Name: EXTENSION plpgsql; Type: COMMENT; Schema: -; Owner: -
---
-
-COMMENT ON EXTENSION plpgsql IS 'PL/pgSQL procedural language';
-
 
 --
 -- Name: emissions_filter_by_year_range(jsonb, integer, integer); Type: FUNCTION; Schema: public; Owner: -
@@ -43,7 +30,7 @@ CREATE FUNCTION public.emissions_filter_by_year_range(emissions jsonb, start_yea
 
 SET default_tablespace = '';
 
-SET default_with_oids = false;
+SET default_table_access_method = heap;
 
 --
 -- Name: active_storage_attachments; Type: TABLE; Schema: public; Owner: -
@@ -925,6 +912,41 @@ ALTER SEQUENCE public.indc_category_types_id_seq OWNED BY public.indc_category_t
 
 
 --
+-- Name: indc_documents; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.indc_documents (
+    id bigint NOT NULL,
+    ordering integer,
+    slug character varying,
+    long_name character varying,
+    description text,
+    created_at timestamp without time zone NOT NULL,
+    updated_at timestamp without time zone NOT NULL,
+    is_ndc boolean
+);
+
+
+--
+-- Name: indc_documents_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.indc_documents_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: indc_documents_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.indc_documents_id_seq OWNED BY public.indc_documents.id;
+
+
+--
 -- Name: indc_indicators; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -936,7 +958,10 @@ CREATE TABLE public.indc_indicators (
     description text,
     created_at timestamp without time zone NOT NULL,
     updated_at timestamp without time zone NOT NULL,
-    "order" integer
+    "order" integer,
+    multiple_versions boolean,
+    normalized_slug character varying,
+    normalized_label character varying
 );
 
 
@@ -1100,7 +1125,8 @@ CREATE TABLE public.indc_submissions (
     submission_date date NOT NULL,
     url text NOT NULL,
     created_at timestamp without time zone NOT NULL,
-    updated_at timestamp without time zone NOT NULL
+    updated_at timestamp without time zone NOT NULL,
+    document_id bigint
 );
 
 
@@ -1135,7 +1161,8 @@ CREATE TABLE public.indc_values (
     label_id bigint,
     value text NOT NULL,
     created_at timestamp without time zone NOT NULL,
-    updated_at timestamp without time zone NOT NULL
+    updated_at timestamp without time zone NOT NULL,
+    document_id bigint
 );
 
 
@@ -2218,6 +2245,13 @@ ALTER TABLE ONLY public.indc_category_types ALTER COLUMN id SET DEFAULT nextval(
 
 
 --
+-- Name: indc_documents id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.indc_documents ALTER COLUMN id SET DEFAULT nextval('public.indc_documents_id_seq'::regclass);
+
+
+--
 -- Name: indc_indicators id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -2718,6 +2752,14 @@ ALTER TABLE ONLY public.indc_categories
 
 ALTER TABLE ONLY public.indc_category_types
     ADD CONSTRAINT indc_category_types_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: indc_documents indc_documents_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.indc_documents
+    ADD CONSTRAINT indc_documents_pkey PRIMARY KEY (id);
 
 
 --
@@ -3254,6 +3296,20 @@ CREATE UNIQUE INDEX index_indc_category_types_on_name ON public.indc_category_ty
 
 
 --
+-- Name: index_indc_documents_on_ordering; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_indc_documents_on_ordering ON public.indc_documents USING btree (ordering);
+
+
+--
+-- Name: index_indc_documents_on_slug; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_indc_documents_on_slug ON public.indc_documents USING btree (slug);
+
+
+--
 -- Name: index_indc_indicators_categories_on_category_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -3345,10 +3401,24 @@ CREATE UNIQUE INDEX index_indc_sources_on_name ON public.indc_sources USING btre
 
 
 --
+-- Name: index_indc_submissions_on_document_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_indc_submissions_on_document_id ON public.indc_submissions USING btree (document_id);
+
+
+--
 -- Name: index_indc_submissions_on_location_id; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX index_indc_submissions_on_location_id ON public.indc_submissions USING btree (location_id);
+
+
+--
+-- Name: index_indc_values_on_document_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_indc_values_on_document_id ON public.indc_values USING btree (document_id);
 
 
 --
@@ -3652,6 +3722,14 @@ ALTER TABLE ONLY public.ndcs
 
 
 --
+-- Name: indc_submissions fk_rails_1d04ac5809; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.indc_submissions
+    ADD CONSTRAINT fk_rails_1d04ac5809 FOREIGN KEY (document_id) REFERENCES public.indc_documents(id);
+
+
+--
 -- Name: indc_categories fk_rails_2684980181; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3745,6 +3823,14 @@ ALTER TABLE ONLY public.agriculture_profile_country_contexts
 
 ALTER TABLE ONLY public.datasets
     ADD CONSTRAINT fk_rails_4cf1467767 FOREIGN KEY (section_id) REFERENCES public.sections(id);
+
+
+--
+-- Name: indc_values fk_rails_5b8cda325b; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.indc_values
+    ADD CONSTRAINT fk_rails_5b8cda325b FOREIGN KEY (document_id) REFERENCES public.indc_documents(id);
 
 
 --
@@ -4168,6 +4254,12 @@ INSERT INTO "schema_migrations" (version) VALUES
 ('20190207144949'),
 ('20190219190427'),
 ('20190405154306'),
-('20190725143552');
+('20190725143552'),
+('20200317204602'),
+('20200317210227'),
+('20200317210928'),
+('20200423085052'),
+('20200503165104'),
+('20200521120158');
 
 

@@ -1,15 +1,17 @@
-import React, { PureComponent } from 'react';
+import React, { useEffect, useState } from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { withRouter } from 'react-router';
 import { getLocationParamUpdated } from 'utils/navigation';
 import { handleAnalytics } from 'utils/analytics';
 import qs from 'query-string';
-import camelCase from 'lodash/camelCase';
 import castArray from 'lodash/castArray';
-import upperFirst from 'lodash/upperFirst';
-import { actions } from 'components/modal-metadata';
-
+import kebabCase from 'lodash/kebabCase';
+import { actions as modalActions } from 'components/modal-metadata';
+import { actions as pngModalActions } from 'components/modal-png-download';
+import { encodeAsCSVContent, invokeCSVDownload } from 'utils/csv';
+import { orderByColumns, stripHTML } from 'utils';
+import { GHG_TABLE_HEADER } from 'data/constants';
 import GhgEmissionsComponent from './ghg-emissions-component';
 import { getGHGEmissions } from './ghg-emissions-selectors/ghg-emissions-selectors';
 
@@ -19,50 +21,120 @@ const mapStateToProps = (state, props) => {
   return getGHGEmissions(state, { ...props, search });
 };
 
-class GhgEmissionsContainer extends PureComponent {
-  componentDidUpdate() {
-    const { search, selected } = this.props;
-    const { sourceSelected } = selected;
-    if (!(search && search.source) && sourceSelected) {
-      this.updateUrlParam({ name: 'source', value: sourceSelected.value });
-    }
-  }
-
-  handleChange = (field, selected) => {
-    if (['regions', 'sectors', 'gases'].includes(field)) {
-      return this.handleFilterChange(field, selected);
-    }
-    const functionName = `handle${upperFirst(camelCase(field))}Change`;
-    return this[functionName](selected);
+function GhgEmissionsContainer(props) {
+  const {
+    search,
+    selected,
+    setModalMetadata,
+    history,
+    location,
+    fieldToBreakBy,
+    tableData,
+    data,
+    dataZoomYears
+  } = props;
+  const handleSetYears = years => {
+    const { min, max } = years || {};
+    updateUrlParam([
+      {
+        name: 'start_year',
+        value: min
+      },
+      {
+        name: 'end_year',
+        value: max
+      }
+    ]);
   };
 
-  handleSourcesChange = category => {
-    this.updateUrlParam([
-      { name: 'source', value: category.value },
+  // Data Zoom Logic
+  const [updatedData, setUpdatedData] = useState(data);
+  const DATA_ZOOM_START_POSITION = {
+    min: 0,
+    max: 0
+  };
+  const [dataZoomPosition, setDataZoomPosition] = useState(
+    DATA_ZOOM_START_POSITION
+  );
+  useEffect(() => {
+    if (!data) {
+      return undefined;
+    }
+    if (dataZoomYears) {
+      setUpdatedData(
+        data.filter(
+          d =>
+            (!dataZoomYears.min || d.x >= dataZoomYears.min) &&
+            (!dataZoomYears.max || d.x <= dataZoomYears.max)
+        )
+      );
+    } else {
+      setUpdatedData(data);
+    }
+    return undefined;
+  }, [dataZoomYears, data]);
+
+  useEffect(() => {
+    const { sourceSelected } = selected;
+    if (!(search && search.source) && sourceSelected) {
+      updateUrlParam({
+        name: 'source',
+        value: sourceSelected.name
+      });
+    }
+  }, []);
+
+  const handleSourcesChange = category => {
+    updateUrlParam([
+      {
+        name: 'source',
+        value: category.name
+      },
       { name: 'sectors', value: null },
-      { name: 'gases', value: null }
+      { name: 'gases', value: null },
+      {
+        name: 'start_year',
+        value: undefined
+      },
+      {
+        name: 'end_year',
+        value: undefined
+      }
     ]);
+    setDataZoomPosition(DATA_ZOOM_START_POSITION);
     handleAnalytics('Historical Emissions', 'Source selected', category.label);
   };
 
-  handleBreakByChange = breakBy => {
-    this.updateUrlParam({ name: 'breakBy', value: breakBy.value });
+  const handleBreakByChange = breakBy => {
+    updateUrlParam({ name: 'breakBy', value: breakBy.value });
     handleAnalytics('Historical Emissions', 'Break by selected', breakBy.label);
   };
 
-  handleChartTypeChange = type => {
-    this.updateUrlParam({ name: 'chartType', value: type.value });
-    handleAnalytics('Chart Type', 'chart type selected', type.label);
+  const handleCalculationChange = calculation => {
+    updateUrlParam({ name: 'calculation', value: calculation.value });
+    handleAnalytics(
+      'Historical Emissions',
+      'Calculation selected',
+      calculation.label
+    );
   };
 
-  handleFilterChange = (field, filters) => {
-    this.updateUrlParam({
-      name: [field],
-      value: castArray(filters)
-        .map(v => v.value)
-        .join(',')
+  const handleChartTypeChange = type => {
+    updateUrlParam({ name: 'chartType', value: type.value });
+    handleAnalytics('Chart Type', 'Chart type selected', type.label);
+  };
+
+  const handleRegionsChange = filters => {
+    const filtersArray = castArray(filters);
+    updateUrlParam({
+      name: 'regions',
+      value: filtersArray.map(v => v.value).join(',')
     });
 
+    sendToAnalitics('regions', filtersArray);
+  };
+
+  const sendToAnalitics = (field, filters) => {
     const selectedFilterLabels = filters.map(f => f.label);
     if (selectedFilterLabels.length > 0) {
       handleAnalytics(
@@ -73,18 +145,40 @@ class GhgEmissionsContainer extends PureComponent {
     }
   };
 
-  updateUrlParam(params, clear) {
-    const { history, location } = this.props;
-    history.replace(getLocationParamUpdated(location, params, clear));
-  }
+  const handleFilterChange = (field, filters) => {
+    updateUrlParam({
+      name: [field],
+      value: castArray(filters)
+        .map(v => kebabCase(v.label))
+        .join(',')
+    });
+    sendToAnalitics(field, filters);
+  };
 
-  handleInfoClick = () => {
-    const { selected } = this.props;
+  const handleChange = (field, optionSelected) => {
+    if (['sectors', 'gases'].includes(field)) {
+      return handleFilterChange(field, optionSelected);
+    }
+    const changeFunctions = {
+      regions: handleRegionsChange,
+      sources: handleSourcesChange,
+      breakBy: handleBreakByChange,
+      calculation: handleCalculationChange,
+      chartType: handleChartTypeChange
+    };
+    return changeFunctions[field](optionSelected);
+  };
+
+  const updateUrlParam = (params, clear) => {
+    history.replace(getLocationParamUpdated(location, params, clear));
+  };
+
+  const handleInfoClick = () => {
     let { label: source } = selected.sourcesSelected || {};
     if (source) {
       if (source.startsWith('UNFCCC')) source = 'UNFCCC';
       const slugs = `historical_emissions_${source}`;
-      this.props.setModalMetadata({
+      setModalMetadata({
         category: 'Historical Emissions',
         slugs,
         open: true
@@ -92,29 +186,82 @@ class GhgEmissionsContainer extends PureComponent {
     }
   };
 
-  updateUrlParam = (params, clear) => {
-    const { history, location } = this.props;
-    history.replace(getLocationParamUpdated(location, params, clear));
+  const handleDownloadDataClick = () => {
+    const defaultColumnOrder = [GHG_TABLE_HEADER[fieldToBreakBy], 'unit'];
+    const stripHtmlFromUnit = d => ({ ...d, unit: stripHTML(d.unit) });
+    const parsedTableData = tableData.map(stripHtmlFromUnit);
+    const encodeParam = param =>
+      param &&
+      castArray(param)
+        .map(r => r.label)
+        .join(', ');
+    const {
+      sourcesSelected,
+      regionsSelected,
+      sectorsSelected,
+      gasesSelected,
+      calculationSelected,
+      breakBySelected
+    } = selected;
+    const filterSelectionLabels = `Countries/Regions: ${encodeParam(
+      regionsSelected
+    )}. Sectors/Subsectors: ${encodeParam(
+      sectorsSelected
+    )}. Gases: ${encodeParam(gasesSelected)}. Calculation: ${encodeParam(
+      calculationSelected
+    )}. Show data by ${encodeParam(breakBySelected)}`;
+    const metadata = {
+      'Data source': selected && sourcesSelected.label,
+      'Data for': filterSelectionLabels
+    };
+
+    const csvContentEncoded = encodeAsCSVContent(
+      parsedTableData,
+      orderByColumns(defaultColumnOrder),
+      metadata
+    );
+    invokeCSVDownload(csvContentEncoded);
   };
 
-  render() {
-    return (
-      <GhgEmissionsComponent
-        {...this.props}
-        updateUrlParam={this.updateUrlParam}
-        handleChange={this.handleChange}
-        handleInfoClick={this.handleInfoClick}
-      />
-    );
-  }
+  const handlePngDownloadModal = () => {
+    const { setModalPngDownload } = props;
+    setModalPngDownload({ open: true });
+  };
+
+  const setColumnWidth = column => {
+    if (column === GHG_TABLE_HEADER[fieldToBreakBy]) return 300;
+    return 200;
+  };
+
+  return (
+    <GhgEmissionsComponent
+      {...props}
+      data={updatedData}
+      updateUrlParam={updateUrlParam}
+      handleChange={handleChange}
+      handleInfoClick={handleInfoClick}
+      handleDownloadDataClick={handleDownloadDataClick}
+      handlePngDownloadModal={handlePngDownloadModal}
+      setColumnWidth={setColumnWidth}
+      setYears={handleSetYears}
+      dataZoomPosition={dataZoomPosition}
+      dataZoomYears={dataZoomYears}
+      setDataZoomPosition={setDataZoomPosition}
+    />
+  );
 }
 
 GhgEmissionsContainer.propTypes = {
   history: PropTypes.object.isRequired,
   location: PropTypes.object.isRequired,
   setModalMetadata: PropTypes.func.isRequired,
+  setYears: PropTypes.func.isRequired,
+  dataZoomYears: PropTypes.object,
   selected: PropTypes.object,
   legendSelected: PropTypes.array,
+  fieldToBreakBy: PropTypes.string,
+  tableData: PropTypes.array,
+  data: PropTypes.array,
   search: PropTypes.object
 };
 
@@ -123,4 +270,8 @@ GhgEmissionsContainer.defaultProps = {
   search: undefined
 };
 
-export default withRouter(connect(mapStateToProps, actions)(GhgEmissionsContainer));
+export default withRouter(
+  connect(mapStateToProps, { ...modalActions, ...pngModalActions })(
+    GhgEmissionsContainer
+  )
+);

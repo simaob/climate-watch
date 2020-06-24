@@ -1,5 +1,6 @@
 class ImportNdcTexts
   def call
+    puts 'Deleting all ndc full text'
     Ndc.delete_all
     bucket_name = Rails.application.secrets.s3_bucket_name
     prefix = "#{CW_FILES_PREFIX}ndc_texts/"
@@ -9,6 +10,8 @@ class ImportNdcTexts
       md_objects.each { |object| import_object(s3, bucket_name, object) }
     end
     Ndc.refresh_full_text_tsv
+    # update ndc_sdg targets intersection with the updated texts
+    ImportNdcSdgTargets.new.call
   end
 
   private
