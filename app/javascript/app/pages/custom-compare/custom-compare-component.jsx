@@ -11,6 +11,7 @@ import Dropdown from 'components/dropdown';
 import { MultiLevelDropdown } from 'cw-components';
 import NdcCompareAllTargetsProvider from 'providers/ndc-compare-all-targets-provider';
 import CountriesDocumentsProvider from 'providers/countries-documents-provider';
+import { TabletLandscape, TabletPortraitOnly } from 'components/responsive';
 
 import anchorNavRegularTheme from 'styles/themes/anchor-nav/anchor-nav-regular.scss';
 import multiLevelDropdownTheme from 'styles/themes/dropdown/multi-level-dropdown-custom-compare.scss';
@@ -88,6 +89,25 @@ const CustomComparisonComponent = props => {
     selectedTargets
   } = props;
 
+  const renderFilters = () => (
+    <div className={styles.filters}>
+      {filtersData &&
+        filtersData.map((data, i) => (
+          <FiltersGroup
+            key={data.key}
+            data={data}
+            countryPlaceholder={COUNTRY_PLACEHOLDERS[i]}
+            handleCountryFilterChange={handleCountryFilterChange}
+            handleDocumentFilterChange={handleDocumentFilterChange}
+            countryFilterDisabled={accordionDataLoading}
+            documentsFilterDisabled={
+              documentsListLoading || accordionDataLoading
+            }
+          />
+        ))}
+    </div>
+  );
+
   return (
     <div>
       <Header route={route}>
@@ -109,24 +129,15 @@ const CustomComparisonComponent = props => {
           />
         </Sticky>
       </Header>
-      <div className={styles.content}>
-        <div className={styles.filters}>
-          {filtersData &&
-            filtersData.map((data, i) => (
-              <FiltersGroup
-                key={data.key}
-                data={data}
-                countryPlaceholder={COUNTRY_PLACEHOLDERS[i]}
-                handleCountryFilterChange={handleCountryFilterChange}
-                handleDocumentFilterChange={handleDocumentFilterChange}
-                countryFilterDisabled={accordionDataLoading}
-                documentsFilterDisabled={
-                  documentsListLoading || accordionDataLoading
-                }
-              />
-            ))}
-        </div>
-      </div>
+      <TabletLandscape>
+        <Sticky activeClass="sticky -custom-compare" top={50}>
+          <div className={styles.content}>{renderFilters()}</div>
+        </Sticky>
+      </TabletLandscape>
+      <TabletPortraitOnly>
+        <div className={styles.content}>{renderFilters()}</div>
+      </TabletPortraitOnly>
+
       {renderRoutes(route.routes, { targets: selectedTargets })}
       <NdcCompareAllTargetsProvider />
       <CountriesDocumentsProvider location={selectedCountries} />
