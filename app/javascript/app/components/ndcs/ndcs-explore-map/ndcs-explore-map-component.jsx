@@ -10,6 +10,7 @@ import ModalMetadata from 'components/modal-metadata';
 import { PieChart } from 'cw-components';
 import CustomTooltip from 'components/ndcs/shared/donut-tooltip';
 import ExploreMapTooltip from 'components/ndcs/shared/explore-map-tooltip';
+import { getHoverIndex } from 'components/ndcs/shared/utils';
 import HandIconInfo from 'components/ndcs/shared/hand-icon-info';
 import CustomInnerHoverLabel from 'components/ndcs/shared/donut-custom-label';
 import LegendItem from 'components/ndcs/shared/legend-item';
@@ -66,14 +67,18 @@ const renderSummary = summaryData => (
   </div>
 );
 
-const renderLegend = legendData => (
+const renderLegend = (legendData, emissionsCardData) => (
   <div className={styles.legendCardContainer}>
     <div className={styles.legendContainer}>
       {legendData &&
-        legendData.map((l, index) => (
+        legendData.map(l => (
           <LegendItem
             key={l.name}
-            index={index}
+            hoverIndex={
+              emissionsCardData &&
+              emissionsCardData.data &&
+              getHoverIndex(emissionsCardData, l)
+            }
             name={l.name}
             number={l.partiesNumber}
             value={l.value}
@@ -161,7 +166,9 @@ function NDCSExploreMap(props) {
                         hideResetButton
                         plain
                         showTooltip={
-                          selectedCategory && selectedCategory.label.length > 14
+                          selectedCategory &&
+                          selectedCategory.label &&
+                          selectedCategory.label.length > 14
                         }
                       />
                       <Dropdown
@@ -173,6 +180,7 @@ function NDCSExploreMap(props) {
                         plain
                         showTooltip={
                           selectedIndicator &&
+                          selectedIndicator.label &&
                           selectedIndicator.label.length > 14
                         }
                       />
@@ -200,7 +208,8 @@ function NDCSExploreMap(props) {
                           {summaryCardData && renderSummary(summaryCardData)}
                           {emissionsCardData &&
                             renderDonutChart(emissionsCardData)}
-                          {legendData && renderLegend(legendData)}
+                          {legendData &&
+                            renderLegend(legendData, emissionsCardData)}
                         </React.Fragment>
                       )}
                     </div>

@@ -16,6 +16,7 @@ import {
   getLabels
 } from 'components/ndcs/shared/utils';
 import { europeSlug, europeanCountries } from 'app/data/european-countries';
+import { DEFAULT_CATEGORY_SLUG } from 'data/constants';
 
 const NOT_APPLICABLE_LABEL = 'Not Applicable';
 
@@ -26,6 +27,7 @@ const getIndicatorsData = state => state.indicators || null;
 const getCountriesDocumentsData = state =>
   state.countriesDocuments.data || null;
 const getZoom = state => state.map.zoom || null;
+
 export const getDonutActiveIndex = state =>
   state.exploreMap.activeIndex || null;
 
@@ -81,7 +83,8 @@ export const getSelectedCategory = createSelector(
   (selected, categories = []) => {
     if (!categories || !categories.length) return null;
     const defaultCategory =
-      categories.find(cat => cat.value === 'unfccc_process') || categories[0];
+      categories.find(cat => cat.value === DEFAULT_CATEGORY_SLUG) ||
+      categories[0];
     if (selected) {
       return (
         categories.find(category => category.value === selected) ||
@@ -191,6 +194,7 @@ export const getLegend = createSelector(
     if (!indicator || !indicator.legendBuckets || !maximumCountries) {
       return null;
     }
+
     const bucketsWithId = Object.keys(indicator.legendBuckets).map(id => ({
       ...indicator.legendBuckets[id],
       id
@@ -217,7 +221,7 @@ export const getLegend = createSelector(
 export const getTooltipCountryValues = createSelector(
   [getIndicatorsData, getSelectedIndicator],
   (indicators, selectedIndicator) => {
-    if (!indicators || !selectedIndicator) {
+    if (!indicators || !selectedIndicator || !selectedIndicator.locations) {
       return null;
     }
     const tooltipCountryValues = {};
@@ -240,12 +244,12 @@ export const getEmissionsCardData = createSelector(
     if (!legend || !selectedIndicator || !indicators) {
       return null;
     }
+
     const emissionsIndicator = indicators.find(i => i.slug === 'ndce_ghg');
     if (!emissionsIndicator) return null;
-    const data = getIndicatorEmissionsData(
-      emissionsIndicator,
-      selectedIndicator,
-      legend
+    const data = sortBy(
+      getIndicatorEmissionsData(emissionsIndicator, selectedIndicator, legend),
+      'value'
     );
 
     const config = {
@@ -287,16 +291,19 @@ export const getSummaryCardData = createSelector(
   [getIndicatorsData, getCountriesDocumentsData],
   (indicators, countriesDocuments) => {
     if (!indicators || !countriesDocuments) return null;
-    const getSubmissionIsos = slug =>
-      Object.keys(countriesDocuments).filter(iso =>
-        countriesDocuments[iso].some(doc => doc.slug === slug)
-      );
-    const firstNDCCountriesAndParties = getCountriesAndParties(
-      getSubmissionIsos('first_ndc')
+
+    const firstNDCIsos = Object.keys(countriesDocuments).filter(iso =>
+      countriesDocuments[iso].some(doc => doc.slug === 'first_ndc')
     );
-    const secondNDCCountriesAndParties = getCountriesAndParties(
-      getSubmissionIsos('second_ndc')
+    const firstNDCCountriesAndParties = getCountriesAndParties(firstNDCIsos);
+
+    const secondNDCIsos = Object.keys(countriesDocuments).filter(iso =>
+      countriesDocuments[iso].some(
+        doc => doc.slug === 'second_ndc' && !!doc.submission_date
+      )
     );
+    const secondNDCCountriesAndParties = getCountriesAndParties(secondNDCIsos);
+
     return [
       {
         value: firstNDCCountriesAndParties.partiesNumber,
