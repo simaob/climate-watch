@@ -97,7 +97,7 @@ class ImportIndc
         locations.each do |loc|
           Indc::Document.where(slug: 'first_ndc', is_ndc: true).each do |doc|
             if sector.values.where(location_id: loc.id, document_id: doc.id).
-                where.not("value ilike 'n/a'").
+                where.not("value ilike 'Not Available'").
                 joins(:indicator).where("indc_indicators.slug ilike ?", "#{prefix.upcase}_%").any?
               Indc::Value.find_or_create_by!(location_id: loc.id,
                                              label_id: label_yes.id,
@@ -515,9 +515,9 @@ class ImportIndc
       to_h
 
     @wb_sectoral_data.each do |r|
-      location = @locations_by_iso2[r[:countrycode]]
+      location = @locations_by_iso2[r[:country]]
       unless location
-        Rails.logger.error "location #{r[:countrycode]} not found. Skipping."
+        Rails.logger.error "location #{r[:country]} not found. Skipping."
         next
       end
 
