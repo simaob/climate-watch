@@ -4,6 +4,7 @@ import {
   createLegendBuckets,
   shouldShowPath
 } from 'utils/map';
+import uniq from 'lodash/uniq';
 import uniqBy from 'lodash/uniqBy';
 import sortBy from 'lodash/sortBy';
 import intersection from 'lodash/intersection';
@@ -25,6 +26,7 @@ const NOT_APPLICABLE_LABEL = 'Not Applicable';
 
 const getSearch = state => state.search || null;
 const getCountries = state => state.countries || null;
+const getSectors = state => state.sectors || null;
 const getCategoriesData = createSelector(
   state => state.categories,
   categories => {
@@ -72,10 +74,11 @@ export const getISOCountries = createSelector([getCountries], countries =>
 );
 
 export const getIndicatorsParsed = createSelector(
-  [getCategories, getIndicatorsData, getISOCountries],
-  (categories, indicators, isos) => {
+  [getCategories, getIndicatorsData, getSectors, getISOCountries],
+  (categories, indicators, sectors, isos) => {
     if (!categories || !indicators || !indicators.length) return null;
-    return sortBy(
+    let parentIndicatorNames = [];
+    const parsedIndicators = sortBy(
       uniqBy(
         indicators.map(i => {
           const legendBuckets = createLegendBuckets(
@@ -84,17 +87,40 @@ export const getIndicatorsParsed = createSelector(
             isos,
             NOT_APPLICABLE_LABEL
           );
+
+          // Add indicator groups from the sector relationship - Sectoral categories
+          let parentSectorName;
+          if (i.locations && Object.values(i.locations)[0]) {
+            const childrenSectorId = Object.values(i.locations)[0].sector_id;
+            const parentId =
+              childrenSectorId &&
+              sectors &&
+              sectors[childrenSectorId] &&
+              sectors[childrenSectorId].parent_id;
+            if (parentId) {
+              parentSectorName = sectors[parentId].name;
+              parentIndicatorNames.push(parentSectorName);
+            }
+          }
           return {
             label: i.name,
             value: i.slug,
             categoryIds: i.category_ids,
             locations: i.locations,
-            legendBuckets
+            legendBuckets,
+            group: parentSectorName
           };
         }),
         'value'
       ),
       'label'
+    );
+
+    parentIndicatorNames = uniq(parentIndicatorNames);
+    return parsedIndicators.map(i =>
+      (parentIndicatorNames.includes(i.label)
+        ? { ...i, groupParent: i.label }
+        : i)
     );
   }
 );
@@ -220,20 +246,24 @@ export const getLegend = createSelector(
       ...indicator.legendBuckets[id],
       id
     }));
-    const legendItems = bucketsWithId.map(label => {
+    const legendItems = [];
+    bucketsWithId.forEach(label => {
       let partiesNumber = Object.values(indicator.locations).filter(
         l => l.label_id === parseInt(label.id, 10)
       ).length;
       if (label.name === NOT_APPLICABLE_LABEL) {
         partiesNumber =
           maximumCountries - Object.values(indicator.locations).length;
+        if (partiesNumber === 0) {
+          return;
+        }
       }
-      return {
+      legendItems.push({
         ...label,
         value: percentage(partiesNumber, maximumCountries),
         partiesNumber,
         color: getColorByIndex(indicator.legendBuckets, label.index)
-      };
+      });
     });
     return legendItems.sort(sortByIndexAndNotInfo);
   }
