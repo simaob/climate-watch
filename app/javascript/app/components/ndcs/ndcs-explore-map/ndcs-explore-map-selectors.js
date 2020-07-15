@@ -157,8 +157,11 @@ export const getSelectedIndicator = createSelector(
   [state => state.indicatorSelected, getCategoryIndicators],
   (selected, indicators = []) => {
     if (!indicators || !indicators.length) return {};
-    const defaultSelection =
-      indicators.find(i => i.value === 'submission') || indicators[0];
+    let defaultSelection = indicators.find(i => i.value === 'submission');
+    if (!defaultSelection) {
+      const firstParentIndicator = indicators.find(i => i.groupParent);
+      defaultSelection = firstParentIndicator || indicators[0];
+    }
     return selected
       ? indicators.find(indicator => indicator.value === selected) ||
           defaultSelection
@@ -226,10 +229,21 @@ export const getPathsWithStyles = createSelector(
   }
 );
 
-export const getLinkToDataExplorer = createSelector([getSearch], search => {
-  const section = 'ndc-content';
-  return generateLinkToDataExplorer(search, section);
-});
+export const getLinkToDataExplorer = createSelector(
+  [getSearch, getSelectedCategory, getSelectedIndicator],
+  (search, selectedCategory, selectedIndicator) => {
+    const section = 'ndc-content';
+    let dataExplorerSearch = search || {};
+    if (selectedCategory && selectedIndicator) {
+      dataExplorerSearch = {
+        category: selectedCategory.value,
+        indicator: selectedIndicator.value,
+        ...search
+      };
+    }
+    return generateLinkToDataExplorer(dataExplorerSearch, section);
+  }
+);
 
 const percentage = (value, total) => (value * 100) / total;
 
